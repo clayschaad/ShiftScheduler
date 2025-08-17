@@ -1,0 +1,106 @@
+/* Calendar container */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* Each day cell */
+.day-cell {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    background-color: #f9f9f9;
+}
+
+/* Day number */
+.day-cell > div:first-child {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Shift buttons container */
+.shifts {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+/* Individual shift buttons */
+.shift-button {
+    border: 1px solid #888;
+    border-radius: 5px;
+    padding: 5px 8px;
+    background-color: white;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s ease;
+}
+
+.shift-button:hover {
+    background-color: #e0e0e0;
+}
+
+/* Selected shift */
+.shift-button.selected {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+
+/* Export button */
+.export-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #28a745;
+    color: white;
+    border: none;
+}
+
+/* Tooltip container */
+.tooltip-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* Tooltip text */
+.tooltip {
+    visibility: hidden;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* Position above the button */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    white-space: nowrap;
+}
+
+/* Tooltip arrow */
+.tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%; /* Arrow at the bottom of tooltip */
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* Show tooltip on hover */
+.tooltip-wrapper:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}

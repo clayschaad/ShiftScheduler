@@ -1,0 +1,31 @@
+﻿@page "/"
+
+<h3>Shift Scheduler</h3>
+
+<div class="calendar-grid">
+    @foreach (var day in DaysInMonth)
+    {
+        <div class="day-cell">
+            <div class="day-header">
+                @day.ToString("dd.MM.yyyy") (@day.ToString("dddd"))
+            </div>
+            <div class="shifts">
+                @foreach (var shift in Shifts)
+                {
+                    <div class="tooltip-wrapper">
+                        <button class="shift-button @(SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name ? "selected" : "")"
+                                @onclick="() => SelectShift(day, shift.Name)">
+                            @shift.Icon
+                        </button>
+                        <span class="tooltip">@shift.Name</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<div class="export-buttons">
+    <button class="btn" @onclick="ExportToIcs">Export to ICS</button>
+    <button class="btn" @onclick="ExportToPdf">Export to PDF</button>
+</div>
