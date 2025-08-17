@@ -1,26 +1,37 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using ShiftScheduler.Shared.Models;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace ShiftScheduler.Client.Pages
 {
     public partial class Index : ComponentBase
     {
         [Inject] private HttpClient HttpClient { get; set; } = default!;
+        [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+        [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
         private List<DateTime> DaysInMonth { get; set; } = new();
         private List<Shift> Shifts { get; set; } = new();
         private Dictionary<DateTime, string> SelectedSchedule { get; set; } = new();
+        private int CurrentMonth { get; set; }
+        private int CurrentYear { get; set; }
 
         protected override async Task OnInitializedAsync()
         {
             var (nextMonth, year) = GetNextMonthAndYear();
+            CurrentMonth = nextMonth;
+            CurrentYear = year;
 
             DaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(year, nextMonth))
                                     .Select(d => new DateTime(year, nextMonth, d))
                                     .ToList();
 
             Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
+
+            // Load saved schedule for this month
+            await LoadScheduleFromStorage();
         }
 
         private (int nextMonth, int year) GetNextMonthAndYear()
@@ -31,9 +42,10 @@ namespace ShiftScheduler.Client.Pages
             return (nextMonth, year);
         }
 
-        private void SelectShift(DateTime day, string shiftName)
+        private async void SelectShift(DateTime day, string shiftName)
         {
             SelectedSchedule[day] = shiftName;
+            await SaveScheduleToStorage();
         }
 
         private async Task ExportToIcs()
@@ -54,6 +66,52 @@ namespace ShiftScheduler.Client.Pages
             NavigationManager.NavigateTo(fileUrl, true);
         }
 
-        [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+        private async Task SaveScheduleToStorage()
+        {
+            try
+            {
+                var storageKey = $"ShiftSchedule_{CurrentYear}_{CurrentMonth:D2}";
+                
+                // Convert DateTime keys to string for JSON serialization
+                var serializableSchedule = SelectedSchedule.ToDictionary(
+                    kvp => kvp.Key.ToString("yyyy-MM-dd"),
+                    kvp => kvp.Value
+                );
+                
+                var json = JsonSerializer.Serialize(serializableSchedule);
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", storageKey, json);
+            }
+            catch (Exception)
+            {
+                // Silently fail if localStorage is not available
+            }
+        }
+
+        private async Task LoadScheduleFromStorage()
+        {
+            try
+            {
+                var storageKey = $"ShiftSchedule_{CurrentYear}_{CurrentMonth:D2}";
+                var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", storageKey);
+                
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var serializableSchedule = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                    if (serializableSchedule != null)
+                    {
+                        // Convert string keys back to DateTime
+                        SelectedSchedule = serializableSchedule.ToDictionary(
+                            kvp => DateTime.Parse(kvp.Key),
+                            kvp => kvp.Value
+                        );
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Silently fail if localStorage is not available or data is corrupted
+                SelectedSchedule = new Dictionary<DateTime, string>();
+            }
+        }
     }
 }
