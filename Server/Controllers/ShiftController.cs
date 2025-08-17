@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ShiftScheduler.Services;
+using ShiftScheduler.Shared.Models;
 
 namespace ShiftScheduler.Server.Controllers
 {
@@ -10,12 +11,21 @@ namespace ShiftScheduler.Server.Controllers
         private readonly ShiftService _shiftService;
         private readonly IcsExportService _icsService;
         private readonly PdfExportService _pdfExportService;
+        private readonly TransportService _transportService;
+        private readonly ShiftEnrichmentService _enrichmentService;
 
-        public ShiftController(ShiftService shiftService, IcsExportService icsService, PdfExportService pdfExportService)
+        public ShiftController(
+            ShiftService shiftService, 
+            IcsExportService icsService, 
+            PdfExportService pdfExportService, 
+            TransportService transportService,
+            ShiftEnrichmentService enrichmentService)
         {
             _shiftService = shiftService;
             _icsService = icsService;
             _pdfExportService = pdfExportService;
+            _transportService = transportService;
+            _enrichmentService = enrichmentService;
         }
 
         [HttpGet("shifts")]
@@ -24,18 +34,33 @@ namespace ShiftScheduler.Server.Controllers
             return Ok(_shiftService.GetShifts());
         }
 
-        [HttpPost("export_ics")]
-        public IActionResult ExportIcs([FromBody] Dictionary<DateTime, string> schedule)
+        [HttpPost("transport_connection")]
+        public async Task<IActionResult> GetTransportConnection([FromBody] TransportConnectionRequest request)
         {
-            var ics = _icsService.GenerateIcs(schedule, _shiftService.GetShifts());
+            var connection = await _transportService.GetConnectionAsync(request.ArrivalTime, request.EndStation);
+            return Ok(connection);
+        }
+
+        [HttpPost("export_ics")]
+        public async Task<IActionResult> ExportIcs([FromBody] Dictionary<DateTime, string> schedule)
+        {
+            var enrichedShifts = await _enrichmentService.EnrichShiftsWithTransportAsync(_shiftService.GetShifts(), schedule);
+            var ics = _icsService.GenerateIcs(schedule, enrichedShifts);
             return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", "schedule.ics");
         }
 
          [HttpPost("export_pdf")]
-        public IActionResult ExportPdf([FromBody] Dictionary<DateTime, string> schedule)
+        public async Task<IActionResult> ExportPdf([FromBody] Dictionary<DateTime, string> schedule)
         {
-            var pdf = _pdfExportService.GenerateMonthlySchedulePdf(schedule, _shiftService.GetShifts());
+            var enrichedShifts = await _enrichmentService.EnrichShiftsWithTransportAsync(_shiftService.GetShifts(), schedule);
+            var pdf = _pdfExportService.GenerateMonthlySchedulePdf(schedule, enrichedShifts);
             return File(pdf, "application/pdf", "schedule.pdf");
         }
+    }
+
+    public class TransportConnectionRequest
+    {
+        public DateTime ArrivalTime { get; set; }
+        public string? EndStation { get; set; }
     }
 }

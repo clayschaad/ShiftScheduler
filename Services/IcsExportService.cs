@@ -24,9 +24,19 @@ namespace ShiftScheduler.Services
                 if (!string.IsNullOrEmpty(shift.MorningTime))
                 {
                     var times = shift.MorningTime.Split('-');
+                    var summary = $"{shift.Name} (Morning)";
+                    var description = "";
+
+                    if (shift.MorningTransport != null && !string.IsNullOrEmpty(shift.MorningTransport.DepartureTime))
+                    {
+                        var transportSummary = FormatTransportInfo(shift.MorningTransport);
+                        description = $"Transport: {transportSummary}";
+                    }
+
                     calendar.Events.Add(new CalendarEvent
                     {
-                        Summary = $"{shift.Name} (Morning)",
+                        Summary = summary,
+                        Description = description,
                         Start = new CalDateTime(date.Add(TimeSpan.Parse(times[0]))),
                         End = new CalDateTime(date.Add(TimeSpan.Parse(times[1])))
                     });
@@ -35,9 +45,19 @@ namespace ShiftScheduler.Services
                 if (!string.IsNullOrEmpty(shift.AfternoonTime))
                 {
                     var times = shift.AfternoonTime.Split('-');
+                    var summary = $"{shift.Name} (Afternoon)";
+                    var description = "";
+
+                    if (shift.AfternoonTransport != null && !string.IsNullOrEmpty(shift.AfternoonTransport.DepartureTime))
+                    {
+                        var transportSummary = FormatTransportInfo(shift.AfternoonTransport);
+                        description = $"Transport: {transportSummary}";
+                    }
+
                     calendar.Events.Add(new CalendarEvent
                     {
-                        Summary = $"{shift.Name} (Afternoon)",
+                        Summary = summary,
+                        Description = description,
                         Start = new CalDateTime(date.Add(TimeSpan.Parse(times[0]))),
                         End = new CalDateTime(date.Add(TimeSpan.Parse(times[1])))
                     });
@@ -45,6 +65,20 @@ namespace ShiftScheduler.Services
             }
 
             return new CalendarSerializer().SerializeToString(calendar);
+        }
+
+        private string FormatTransportInfo(TransportConnection transport)
+        {
+            var departure = DateTime.TryParse(transport.DepartureTime, out var dep) ? dep.ToString("HH:mm") : transport.DepartureTime;
+            var arrival = DateTime.TryParse(transport.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : transport.ArrivalTime;
+            
+            var mainJourney = transport.Sections?.FirstOrDefault()?.Journey;
+            if (mainJourney != null)
+            {
+                return $"{mainJourney.Category} {mainJourney.Number}: {departure} → {arrival}";
+            }
+            
+            return $"{departure} → {arrival}";
         }
     }
 }
