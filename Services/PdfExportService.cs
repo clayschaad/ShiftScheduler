@@ -8,91 +8,173 @@ namespace ShiftScheduler.Services
 {
     public class PdfExportService
     {
+        private static readonly Color borderColor = Colors.Grey.Darken1;
+        private static readonly float boarderWidth = 1;
+        
         static PdfExportService()
         {
-            QuestPDF.Settings.License = LicenseType.Community; 
+            QuestPDF.Settings.License = LicenseType.Community;
         }
 
         public byte[] GenerateMonthlySchedulePdf(Dictionary<DateTime, string> schedule, List<Shift> shifts)
         {
             var year = schedule.First().Key.Year;
             var month = schedule.First().Key.Month;
-            var daysInMonth = DateTime.DaysInMonth(year, month);
-            var monthDates = Enumerable.Range(1, daysInMonth)
-                .Select(day => new DateTime(year, month, day))
-                .ToList();
 
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Margin(30);
-                    page.Size(PageSizes.A4);
-                    page.DefaultTextStyle(x => x.FontSize(12));
+                    page.Size(PageSizes.A4.Landscape());
+                    page.DefaultTextStyle(x => x.FontSize(10));
 
                     page.Header()
                         .Text($"Shift Schedule for {CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month)} {year}")
-                        .FontSize(18).Bold().AlignCenter();
-
-                    page.Content().Table(table =>
-                    {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.RelativeColumn(2); // Date
-                            columns.RelativeColumn(2); // Shift Name
-                            columns.RelativeColumn(2); // Times
-                            columns.RelativeColumn(1); // Icon
-                        });
-
-                        // Header
-                        table.Header(header =>
-                        {
-                            header.Cell().Text("Date").Bold();
-                            header.Cell().Text("Shift").Bold();
-                            header.Cell().Text("Times").Bold();
-                            header.Cell().Text("Icon").Bold();
-                        });
-
-                        foreach (var date in monthDates)
-                        {
-                            var dateText = date.ToString("dd.MM.yyyy (dddd)", CultureInfo.InvariantCulture);
-                            table.Cell().Text(dateText);
-
-                            var shiftName = schedule.ContainsKey(date) ? schedule[date] : null;
-                            if (shiftName != null)
-                            {
-                                var shift = shifts.Single(s => s.Name.Equals(shiftName));
-                                table.Cell().Text(shift.Name);
-                                table.Cell().Text($"{shift.MorningTime} - {shift.AfternoonTime}");
-
-                                if (!string.IsNullOrWhiteSpace(shift.Icon))
-                                {
-                                    try
-                                    {
-                                        table.Cell().Image(shift.Icon, ImageScaling.FitArea);
-                                    }
-                                    catch
-                                    {
-                                        table.Cell().Text("[icon missing]");
-                                    }
-                                }
-                                else
-                                {
-                                    table.Cell().Text("-");
-                                }
-                            }
-                            else
-                            {
-                                table.Cell().Text("-");
-                                table.Cell().Text("-");
-                                table.Cell().Text("-");
-                            }
-                        }
-                    });
+                        .FontSize(16).Bold().AlignCenter();
+                    
+                    page.Content().Element(e => ComposeTable(e, schedule, shifts));
                 });
             });
 
             return document.GeneratePdf();
+        }
+        
+        void ComposeTable(IContainer container, IReadOnlyDictionary<DateTime, string> schedule, IReadOnlyList<Shift> shifts)
+        {
+            container.Table(table =>
+            {
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                });
+                
+                var year = schedule.First().Key.Year;
+                var month = schedule.First().Key.Month;
+                var daysInMonth = DateTime.DaysInMonth(year, month);
+                var monthDates = Enumerable.Range(1, daysInMonth)
+                    .Select(day => new DateTime(year, month, day))
+                    .ToList();
+                var weeks = monthDates
+                    .GroupBy(d => CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(
+                        d, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday))
+                    .ToList();
+                foreach (var week in weeks)
+                {
+                    RenderShiftForWeek(table, week, schedule, shifts);
+                }
+            });
+        }
+
+        private static void RenderShiftForWeek(TableDescriptor table, IGrouping<int, DateTime> week, 
+            IReadOnlyDictionary<DateTime, string> schedule, IReadOnlyList<Shift> shifts)
+        {
+            var weekDates = week.ToList();
+            var dayInWeek = weekDates.Count;
+            foreach (var day in Enumerable.Range(0, dayInWeek))
+            {
+                var dddd = weekDates.ElementAtOrDefault(day).ToString("dd.MM.yyyy (ddd)");
+                table.Cell().Element(CellStyleFirst).Text(dddd);
+            }
+            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
+            {
+                RenderEmptyCell(table);
+            }
+            
+            foreach (var day in Enumerable.Range(0, dayInWeek))
+            {
+                var shiftName = shifts.Single(s => s.Name == schedule[weekDates.ElementAtOrDefault(day)]).Name;
+                table.Cell().Element(CellStyleMiddle).Text(shiftName);
+            }
+            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
+            {
+                RenderEmptyCell(table);
+            }
+            
+            foreach (var day in Enumerable.Range(0, dayInWeek))
+            {
+                var morningTime = shifts.Single(s => s.Name == schedule[weekDates.ElementAtOrDefault(day)]).MorningTime;
+                table.Cell().Element(CellStyleMiddle).Text(morningTime);
+            }
+            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
+            {
+                RenderEmptyCell(table);
+            }
+            
+            foreach (var day in Enumerable.Range(0, dayInWeek))
+            {
+                var afternoonTime = shifts.Single(s => s.Name == schedule[weekDates.ElementAtOrDefault(day)]).AfternoonTime;
+                table.Cell().Element(CellStyleMiddle).Text(afternoonTime);
+            }
+            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
+            {
+                RenderEmptyCell(table);
+            }
+            
+            foreach (var day in Enumerable.Range(0, dayInWeek))
+            {
+                var icon = shifts.Single(s => s.Name == schedule[weekDates.ElementAtOrDefault(day)]).Icon;
+                table.Cell().Element(CellStyleLast).Text(icon);
+            }
+            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
+            {
+                RenderEmptyCell(table);
+            }
+        }
+
+        private static void RenderEmptyCell(TableDescriptor table)
+        {
+            table.Cell().Element(EmptyCellStyle).Text("");
+        }
+        
+        private static IContainer CellStyleFirst(IContainer container)
+        {
+            return container
+                .Padding(0)
+                .BorderLeft(boarderWidth)
+                .BorderTop(boarderWidth)
+                .BorderRight(boarderWidth)
+                .BorderColor(borderColor)
+                .AlignCenter()
+                .AlignMiddle();
+        }
+        
+        private static IContainer CellStyleMiddle(IContainer container)
+        {
+            return container
+                .Padding(0)
+                .BorderLeft(boarderWidth)
+                .BorderRight(boarderWidth)
+                .BorderColor(borderColor)
+                .AlignCenter()
+                .AlignMiddle();
+        }
+        
+        private static IContainer CellStyleLast(IContainer container)
+        {
+            return container
+                .Padding(0)
+                .BorderLeft(boarderWidth)
+                .BorderBottom(boarderWidth)
+                .BorderRight(boarderWidth)
+                .BorderColor(borderColor)
+                .AlignCenter()
+                .AlignMiddle();
+        }
+        
+        private static IContainer EmptyCellStyle(IContainer container)
+        {
+            return container
+                .Padding(0)
+                .BorderLeft(0)
+                .BorderBottom(0)
+                .BorderRight(0);
         }
     }
 }
