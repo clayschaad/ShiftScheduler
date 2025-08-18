@@ -15,22 +15,17 @@ namespace ShiftScheduler.Client.Pages
         private List<DateTime> DaysInMonth { get; set; } = new();
         private List<Shift> Shifts { get; set; } = new();
         private Dictionary<DateTime, string> SelectedSchedule { get; set; } = new();
-        private int CurrentMonth { get; set; }
-        private int CurrentYear { get; set; }
 
         protected override async Task OnInitializedAsync()
         {
-            var (nextMonth, year) = GetNextMonthAndYear();
-            CurrentMonth = nextMonth;
-            CurrentYear = year;
+            var (EditMonth, EditYear) = GetNextMonthAndYear();
 
-            DaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(year, nextMonth))
-                                    .Select(d => new DateTime(year, nextMonth, d))
+            DaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(EditYear, EditMonth))
+                                    .Select(d => new DateTime(EditYear, EditMonth, d))
                                     .ToList();
 
             Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
 
-            // Load saved schedule for this month
             await LoadScheduleFromStorage();
         }
 
@@ -70,9 +65,8 @@ namespace ShiftScheduler.Client.Pages
         {
             try
             {
-                var storageKey = $"ShiftSchedule_{CurrentYear}_{CurrentMonth:D2}";
+                var storageKey = $"ShiftSchedule_{EditYear}_{EditMonth:D2}";
                 
-                // Convert DateTime keys to string for JSON serialization
                 var serializableSchedule = SelectedSchedule.ToDictionary(
                     kvp => kvp.Key.ToString("yyyy-MM-dd"),
                     kvp => kvp.Value
@@ -83,7 +77,6 @@ namespace ShiftScheduler.Client.Pages
             }
             catch (Exception)
             {
-                // Silently fail if localStorage is not available
             }
         }
 
@@ -91,7 +84,7 @@ namespace ShiftScheduler.Client.Pages
         {
             try
             {
-                var storageKey = $"ShiftSchedule_{CurrentYear}_{CurrentMonth:D2}";
+                var storageKey = $"ShiftSchedule_{EditYear}_{EditMonth:D2}";
                 var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", storageKey);
                 
                 if (!string.IsNullOrEmpty(json))
@@ -99,7 +92,6 @@ namespace ShiftScheduler.Client.Pages
                     var serializableSchedule = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
                     if (serializableSchedule != null)
                     {
-                        // Convert string keys back to DateTime
                         SelectedSchedule = serializableSchedule.ToDictionary(
                             kvp => DateTime.Parse(kvp.Key),
                             kvp => kvp.Value
@@ -109,7 +101,6 @@ namespace ShiftScheduler.Client.Pages
             }
             catch (Exception)
             {
-                // Silently fail if localStorage is not available or data is corrupted
                 SelectedSchedule = new Dictionary<DateTime, string>();
             }
         }
