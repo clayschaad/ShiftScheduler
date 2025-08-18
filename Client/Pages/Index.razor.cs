@@ -39,7 +39,7 @@ namespace ShiftScheduler.Client.Pages
             return (nextMonth, year);
         }
 
-        private async void SelectShift(DateTime day, string shiftName)
+        private async Task SelectShift(DateTime day, string shiftName)
         {
             SelectedSchedule[day] = shiftName;
             await SaveScheduleToStorage();
@@ -79,6 +79,7 @@ namespace ShiftScheduler.Client.Pages
             }
             catch (Exception)
             {
+                // ignored
             }
         }
 
