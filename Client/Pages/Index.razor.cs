@@ -15,10 +15,12 @@ namespace ShiftScheduler.Client.Pages
         private List<DateTime> DaysInMonth { get; set; } = new();
         private List<Shift> Shifts { get; set; } = new();
         private Dictionary<DateTime, string> SelectedSchedule { get; set; } = new();
+        private int EditMonth { get; set; }
+        private int EditYear { get; set; }
 
         protected override async Task OnInitializedAsync()
         {
-            var (EditMonth, EditYear) = GetNextMonthAndYear();
+            (EditMonth, EditYear) = GetNextMonthAndYear();
 
             DaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(EditYear, EditMonth))
                                     .Select(d => new DateTime(EditYear, EditMonth, d))
