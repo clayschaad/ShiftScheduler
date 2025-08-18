@@ -107,5 +107,22 @@ namespace ShiftScheduler.Client.Pages
                 SelectedSchedule = new Dictionary<DateTime, string>();
             }
         }
+
+        private async Task ResetSchedule()
+        {
+            // Clear the in-memory schedule
+            SelectedSchedule.Clear();
+            
+            // Remove from localStorage
+            try
+            {
+                var storageKey = $"ShiftSchedule_{EditYear}_{EditMonth:D2}";
+                await JSRuntime.InvokeVoidAsync("localStorage.removeItem", storageKey);
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
+        }
     }
 }
