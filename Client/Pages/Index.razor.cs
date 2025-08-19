@@ -110,10 +110,8 @@ namespace ShiftScheduler.Client.Pages
 
         private async Task ResetSchedule()
         {
-            // Clear the in-memory schedule
             SelectedSchedule.Clear();
             
-            // Remove from localStorage
             try
             {
                 var storageKey = $"ShiftSchedule_{EditYear}_{EditMonth:D2}";
