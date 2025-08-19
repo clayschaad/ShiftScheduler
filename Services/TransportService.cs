@@ -21,8 +21,8 @@ namespace ShiftScheduler.Services
                 var endStation = customEndStation ?? _config.EndStation;
                 var arrivalTimeStr = arrivalTime.ToString("HH:mm");
                 
-                // Calculate departure time (assume 30 minutes before arrival for safety)
-                var searchTime = arrivalTime.AddMinutes(-30);
+                // Calculate departure time (use configured safety buffer)
+                var searchTime = arrivalTime.AddMinutes(-_config.SafetyBufferMinutes);
                 var searchTimeStr = searchTime.ToString("yyyy-MM-dd");
                 var searchHourStr = searchTime.ToString("HH:mm");
 

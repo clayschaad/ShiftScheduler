@@ -12,6 +12,7 @@ namespace ShiftScheduler.Shared.Models
         public string StartStation { get; set; } = string.Empty;
         public string EndStation { get; set; } = string.Empty;
         public string ApiBaseUrl { get; set; } = string.Empty;
+        public int SafetyBufferMinutes { get; set; } = 30;
     }
 
     public class TransportConnection
