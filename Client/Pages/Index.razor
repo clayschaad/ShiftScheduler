@@ -25,7 +25,11 @@
     }
 </div>
 
+<div class="reset-section">
+    <button class="reset-btn" @onclick="ResetSchedule">Reset Schedule</button>
+</div>
+
 <div class="export-buttons">
-    <button class="btn" @onclick="ExportToIcs">Export to ICS</button>
-    <button class="btn" @onclick="ExportToPdf">Export to PDF</button>
+    <button class="btn export-btn" @onclick="ExportToIcs">Export to ICS</button>
+    <button class="btn export-btn" @onclick="ExportToPdf">Export to PDF</button>
 </div>

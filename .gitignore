@@ -52,4 +52,10 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Temporary installation files
+*.deb
+*.rpm
+
+# mac files
 .DS_Store
