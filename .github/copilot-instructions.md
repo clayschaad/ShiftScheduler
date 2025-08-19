@@ -100,6 +100,6 @@ ShiftScheduler.sln          # Main solution file
 - If WebAssembly doesn't load: Wait longer, check browser console for JavaScript errors
 - Export issues: Verify shift configurations in appsettings.json have proper time formats for ICS export
 
-  ## Common Instructions
-  - Don't write code comments
-  - Use var instead of explicit type, ex. var x = 4;
+## Common Instructions
+- Don't write code comments
+- Use var instead of explicit type, ex. var x = 4;
