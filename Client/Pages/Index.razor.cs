@@ -15,8 +15,10 @@ namespace ShiftScheduler.Client.Pages
         private List<DateTime> DaysInMonth { get; set; } = new();
         private List<Shift> Shifts { get; set; } = new();
         private Dictionary<DateTime, string> SelectedSchedule { get; set; } = new();
+        private Dictionary<DateTime, ShiftWithTransport> SelectedShiftsWithTransport { get; set; } = new();
         private int EditMonth { get; set; }
         private int EditYear { get; set; }
+        private bool _isLoadingTransport = false;
 
         protected override async Task OnInitializedAsync()
         {
@@ -42,12 +44,54 @@ namespace ShiftScheduler.Client.Pages
         private async Task SelectShift(DateTime day, string shiftName)
         {
             SelectedSchedule[day] = shiftName;
+            
+            // Get transport information for this shift and date
+            _isLoadingTransport = true;
+            StateHasChanged();
+            
+            try
+            {
+                var request = new { ShiftName = shiftName, Date = day };
+                var response = await HttpClient.PostAsJsonAsync("api/shift/shift_transport", request);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var shiftWithTransport = await response.Content.ReadFromJsonAsync<ShiftWithTransport>();
+                    if (shiftWithTransport != null)
+                    {
+                        SelectedShiftsWithTransport[day] = shiftWithTransport;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching transport data: {ex.Message}");
+                // Create a fallback with just the shift data
+                var shift = Shifts.FirstOrDefault(s => s.Name == shiftName);
+                if (shift != null)
+                {
+                    SelectedShiftsWithTransport[day] = new ShiftWithTransport
+                    {
+                        Date = day,
+                        Shift = shift,
+                        MorningTransport = null,
+                        AfternoonTransport = null
+                    };
+                }
+            }
+            finally
+            {
+                _isLoadingTransport = false;
+                StateHasChanged();
+            }
+            
             await SaveScheduleToStorage();
         }
 
         private async Task ExportToIcs()
         {
-            var response = await HttpClient.PostAsJsonAsync("api/shift/export_ics", SelectedSchedule);
+            var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
+            var response = await HttpClient.PostAsJsonAsync("api/shift/export_ics", shiftsWithTransportList);
             var bytes = await response.Content.ReadAsByteArrayAsync();
             var base64 = Convert.ToBase64String(bytes);
             var fileUrl = $"data:text/calendar;base64,{base64}";
@@ -56,7 +100,8 @@ namespace ShiftScheduler.Client.Pages
 
         private async Task ExportToPdf()
         {
-            var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf", SelectedSchedule);
+            var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
+            var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf", shiftsWithTransportList);
             var bytes = await response.Content.ReadAsByteArrayAsync();
             var base64 = Convert.ToBase64String(bytes);
             var fileUrl = $"data:application/octet-stream;base64,{base64}";
@@ -99,18 +144,63 @@ namespace ShiftScheduler.Client.Pages
                             kvp => DateTime.Parse(kvp.Key),
                             kvp => kvp.Value
                         );
+                        
+                        // Reload transport data for all selected shifts
+                        await ReloadTransportDataForSchedule();
                     }
                 }
             }
             catch (Exception)
             {
                 SelectedSchedule = new Dictionary<DateTime, string>();
+                SelectedShiftsWithTransport = new Dictionary<DateTime, ShiftWithTransport>();
+            }
+        }
+
+        private async Task ReloadTransportDataForSchedule()
+        {
+            foreach (var kvp in SelectedSchedule)
+            {
+                var day = kvp.Key;
+                var shiftName = kvp.Value;
+                
+                try
+                {
+                    var request = new { ShiftName = shiftName, Date = day };
+                    var response = await HttpClient.PostAsJsonAsync("api/shift/shift_transport", request);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var shiftWithTransport = await response.Content.ReadFromJsonAsync<ShiftWithTransport>();
+                        if (shiftWithTransport != null)
+                        {
+                            SelectedShiftsWithTransport[day] = shiftWithTransport;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reloading transport data for {day}: {ex.Message}");
+                    // Create fallback without transport
+                    var shift = Shifts.FirstOrDefault(s => s.Name == shiftName);
+                    if (shift != null)
+                    {
+                        SelectedShiftsWithTransport[day] = new ShiftWithTransport
+                        {
+                            Date = day,
+                            Shift = shift,
+                            MorningTransport = null,
+                            AfternoonTransport = null
+                        };
+                    }
+                }
             }
         }
 
         private async Task ResetSchedule()
         {
             SelectedSchedule.Clear();
+            SelectedShiftsWithTransport.Clear();
             
             try
             {
@@ -121,6 +211,25 @@ namespace ShiftScheduler.Client.Pages
             {
                 // ignored
             }
+        }
+
+        // Helper method to get transport summary for display
+        public string GetTransportSummary(DateTime date)
+        {
+            if (!SelectedShiftsWithTransport.TryGetValue(date, out var shiftWithTransport))
+                return string.Empty;
+
+            var summaries = new List<string>();
+            
+            var morningTransport = shiftWithTransport.GetMorningTransportSummary();
+            if (!string.IsNullOrEmpty(morningTransport))
+                summaries.Add($"🌅 {morningTransport}");
+                
+            var afternoonTransport = shiftWithTransport.GetAfternoonTransportSummary();
+            if (!string.IsNullOrEmpty(afternoonTransport))
+                summaries.Add($"🌆 {afternoonTransport}");
+                
+            return string.Join(" | ", summaries);
         }
     }
 }

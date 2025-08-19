@@ -14,13 +14,27 @@
                 {
                     <div class="tooltip-wrapper">
                         <button class="shift-button @(SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name ? "selected" : "")"
-                                @onclick="() => SelectShift(day, shift.Name)">
-                            @shift.Icon
+                                @onclick="() => SelectShift(day, shift.Name)"
+                                disabled="@_isLoadingTransport">
+                            @if (_isLoadingTransport && SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name)
+                            {
+                                <span class="loading-spinner">⏳</span>
+                            }
+                            else
+                            {
+                                @shift.Icon
+                            }
                         </button>
                         <span class="tooltip">@shift.Name</span>
                     </div>
                 }
             </div>
+            @if (SelectedSchedule.ContainsKey(day))
+            {
+                <div class="transport-info">
+                    <small>@GetTransportSummary(day)</small>
+                </div>
+            }
         </div>
     }
 </div>

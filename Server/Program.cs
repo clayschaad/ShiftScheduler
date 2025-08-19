@@ -3,13 +3,19 @@ using ShiftScheduler.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load shifts from appsettings.json
+// Load configurations from appsettings.json
 var shifts = builder.Configuration.GetSection("Shifts").Get<List<Shift>>() ?? new();
+var transportConfig = builder.Configuration.GetSection("Transport").Get<TransportConfiguration>() ?? new();
 
+// Register services
 builder.Services.AddSingleton(shifts);
+builder.Services.AddSingleton(transportConfig);
+builder.Services.AddHttpClient<TransportService>();
 builder.Services.AddSingleton<ShiftService>();
 builder.Services.AddSingleton<IcsExportService>();
 builder.Services.AddSingleton<PdfExportService>();
+builder.Services.AddSingleton<TransportService>();
+builder.Services.AddSingleton<ShiftEnrichmentService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
