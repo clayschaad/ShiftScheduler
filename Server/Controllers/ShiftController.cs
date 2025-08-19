@@ -113,16 +113,7 @@ namespace ShiftScheduler.Server.Controllers
         [HttpPost("export_ics_with_transport")]
         public IActionResult ExportIcsWithTransport([FromBody] List<ShiftWithTransport> shiftsWithTransport)
         {
-            var schedule = shiftsWithTransport.ToDictionary(s => s.Date, s => s.Shift.Name);
-            var shifts = shiftsWithTransport.Select(s => s.Shift).DistinctBy(s => s.Name).ToList();
-            var shiftTransports = shiftsWithTransport.Select(s => new ShiftTransport
-            {
-                ShiftName = s.Shift.Name,
-                MorningTransport = s.MorningTransport,
-                AfternoonTransport = s.AfternoonTransport
-            }).DistinctBy(s => s.ShiftName).ToList();
-            
-            var ics = _icsService.GenerateIcs(schedule, shifts, shiftTransports);
+            var ics = _icsService.GenerateIcs(shiftsWithTransport);
             return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", "schedule.ics");
         }
 
@@ -138,16 +129,7 @@ namespace ShiftScheduler.Server.Controllers
         [HttpPost("export_pdf_with_transport")]
         public IActionResult ExportPdfWithTransport([FromBody] List<ShiftWithTransport> shiftsWithTransport)
         {
-            var schedule = shiftsWithTransport.ToDictionary(s => s.Date, s => s.Shift.Name);
-            var shifts = shiftsWithTransport.Select(s => s.Shift).DistinctBy(s => s.Name).ToList();
-            var shiftTransports = shiftsWithTransport.Select(s => new ShiftTransport
-            {
-                ShiftName = s.Shift.Name,
-                MorningTransport = s.MorningTransport,
-                AfternoonTransport = s.AfternoonTransport
-            }).DistinctBy(s => s.ShiftName).ToList();
-            
-            var pdf = _pdfExportService.GenerateMonthlySchedulePdf(schedule, shifts, shiftTransports);
+            var pdf = _pdfExportService.GenerateMonthlySchedulePdf(shiftsWithTransport);
             return File(pdf, "application/pdf", "schedule.pdf");
         }
     }

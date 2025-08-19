@@ -68,6 +68,64 @@ namespace ShiftScheduler.Services
             return new CalendarSerializer().SerializeToString(calendar);
         }
 
+        public string GenerateIcs(List<ShiftWithTransport> shiftsWithTransport)
+        {
+            var calendar = new Calendar();
+
+            foreach (var shiftWithTransport in shiftsWithTransport)
+            {
+                var date = shiftWithTransport.Date;
+                var shift = shiftWithTransport.Shift;
+
+                if (string.IsNullOrEmpty(shift.MorningTime) && string.IsNullOrEmpty(shift.AfternoonTime))
+                    continue;
+
+                if (!string.IsNullOrEmpty(shift.MorningTime))
+                {
+                    var times = shift.MorningTime.Split('-');
+                    var summary = $"{shift.Name} (Morning)";
+                    var description = "";
+
+                    if (shiftWithTransport.MorningTransport != null && !string.IsNullOrEmpty(shiftWithTransport.MorningTransport.DepartureTime))
+                    {
+                        var transportSummary = FormatTransportInfo(shiftWithTransport.MorningTransport);
+                        description = $"Transport: {transportSummary}";
+                    }
+
+                    calendar.Events.Add(new CalendarEvent
+                    {
+                        Summary = summary,
+                        Description = description,
+                        Start = new CalDateTime(date.Add(TimeSpan.Parse(times[0]))),
+                        End = new CalDateTime(date.Add(TimeSpan.Parse(times[1])))
+                    });
+                }
+
+                if (!string.IsNullOrEmpty(shift.AfternoonTime))
+                {
+                    var times = shift.AfternoonTime.Split('-');
+                    var summary = $"{shift.Name} (Afternoon)";
+                    var description = "";
+
+                    if (shiftWithTransport.AfternoonTransport != null && !string.IsNullOrEmpty(shiftWithTransport.AfternoonTransport.DepartureTime))
+                    {
+                        var transportSummary = FormatTransportInfo(shiftWithTransport.AfternoonTransport);
+                        description = $"Transport: {transportSummary}";
+                    }
+
+                    calendar.Events.Add(new CalendarEvent
+                    {
+                        Summary = summary,
+                        Description = description,
+                        Start = new CalDateTime(date.Add(TimeSpan.Parse(times[0]))),
+                        End = new CalDateTime(date.Add(TimeSpan.Parse(times[1])))
+                    });
+                }
+            }
+
+            return new CalendarSerializer().SerializeToString(calendar);
+        }
+
         private string FormatTransportInfo(TransportConnection transport)
         {
             var departure = DateTime.TryParse(transport.DepartureTime, out var dep) ? dep.ToString("HH:mm") : transport.DepartureTime;
