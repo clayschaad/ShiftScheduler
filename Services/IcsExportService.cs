@@ -8,7 +8,7 @@ namespace ShiftScheduler.Services
 {
     public class IcsExportService
     {
-        public string GenerateIcs(Dictionary<DateTime, string> schedule, List<Shift> shifts)
+        public string GenerateIcs(Dictionary<DateTime, string> schedule, List<Shift> shifts, List<ShiftTransport>? shiftTransports = null)
         {
             var calendar = new Calendar();
 
@@ -17,6 +17,7 @@ namespace ShiftScheduler.Services
                 var date = kvp.Key;
                 var shiftName = kvp.Value;
                 var shift = shifts.FirstOrDefault(s => s.Name == shiftName);
+                var transport = shiftTransports?.FirstOrDefault(t => t.ShiftName == shiftName);
 
                 if (shift == null || (string.IsNullOrEmpty(shift.MorningTime) && string.IsNullOrEmpty(shift.AfternoonTime)))
                     continue;
@@ -27,9 +28,9 @@ namespace ShiftScheduler.Services
                     var summary = $"{shift.Name} (Morning)";
                     var description = "";
 
-                    if (shift.MorningTransport != null && !string.IsNullOrEmpty(shift.MorningTransport.DepartureTime))
+                    if (transport?.MorningTransport != null && !string.IsNullOrEmpty(transport.MorningTransport.DepartureTime))
                     {
-                        var transportSummary = FormatTransportInfo(shift.MorningTransport);
+                        var transportSummary = FormatTransportInfo(transport.MorningTransport);
                         description = $"Transport: {transportSummary}";
                     }
 
@@ -48,9 +49,9 @@ namespace ShiftScheduler.Services
                     var summary = $"{shift.Name} (Afternoon)";
                     var description = "";
 
-                    if (shift.AfternoonTransport != null && !string.IsNullOrEmpty(shift.AfternoonTransport.DepartureTime))
+                    if (transport?.AfternoonTransport != null && !string.IsNullOrEmpty(transport.AfternoonTransport.DepartureTime))
                     {
-                        var transportSummary = FormatTransportInfo(shift.AfternoonTransport);
+                        var transportSummary = FormatTransportInfo(transport.AfternoonTransport);
                         description = $"Transport: {transportSummary}";
                     }
 

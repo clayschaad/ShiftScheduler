@@ -11,18 +11,15 @@ namespace ShiftScheduler.Services
             _transportService = transportService;
         }
 
-        public async Task<List<Shift>> EnrichShiftsWithTransportAsync(List<Shift> shifts, Dictionary<DateTime, string> schedule)
+        public async Task<List<ShiftTransport>> EnrichShiftsWithTransportAsync(List<Shift> shifts, Dictionary<DateTime, string> schedule)
         {
-            var enrichedShifts = new List<Shift>();
+            var shiftTransports = new List<ShiftTransport>();
 
             foreach (var shift in shifts)
             {
-                var enrichedShift = new Shift
+                var shiftTransport = new ShiftTransport
                 {
-                    Name = shift.Name,
-                    Icon = shift.Icon,
-                    MorningTime = shift.MorningTime,
-                    AfternoonTime = shift.AfternoonTime
+                    ShiftName = shift.Name
                 };
 
                 // Find dates where this shift is scheduled
@@ -39,7 +36,7 @@ namespace ShiftScheduler.Services
                         var morningStartTime = ParseShiftTime(sampleDate, shift.MorningTime);
                         if (morningStartTime.HasValue)
                         {
-                            enrichedShift.MorningTransport = await _transportService.GetConnectionAsync(morningStartTime.Value);
+                            shiftTransport.MorningTransport = await _transportService.GetConnectionAsync(morningStartTime.Value);
                         }
                     }
 
@@ -49,15 +46,15 @@ namespace ShiftScheduler.Services
                         var afternoonStartTime = ParseShiftTime(sampleDate, shift.AfternoonTime);
                         if (afternoonStartTime.HasValue)
                         {
-                            enrichedShift.AfternoonTransport = await _transportService.GetConnectionAsync(afternoonStartTime.Value);
+                            shiftTransport.AfternoonTransport = await _transportService.GetConnectionAsync(afternoonStartTime.Value);
                         }
                     }
                 }
 
-                enrichedShifts.Add(enrichedShift);
+                shiftTransports.Add(shiftTransport);
             }
 
-            return enrichedShifts;
+            return shiftTransports;
         }
 
         private DateTime? ParseShiftTime(DateTime date, string timeRange)

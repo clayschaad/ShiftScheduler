@@ -13,7 +13,7 @@ namespace ShiftScheduler.Services
             QuestPDF.Settings.License = LicenseType.Community; 
         }
 
-        public byte[] GenerateMonthlySchedulePdf(Dictionary<DateTime, string> schedule, List<Shift> shifts)
+        public byte[] GenerateMonthlySchedulePdf(Dictionary<DateTime, string> schedule, List<Shift> shifts, List<ShiftTransport>? shiftTransports = null)
         {
             var year = schedule.First().Key.Year;
             var month = schedule.First().Key.Month;
@@ -68,7 +68,8 @@ namespace ShiftScheduler.Services
                                 table.Cell().Text($"{shift.MorningTime} - {shift.AfternoonTime}");
                                 
                                 // Add transport information
-                                var transportInfo = GetTransportSummary(shift);
+                                var transport = shiftTransports?.FirstOrDefault(t => t.ShiftName == shift.Name);
+                                var transportInfo = GetTransportSummary(transport);
                                 table.Cell().Text(transportInfo);
 
                                 if (!string.IsNullOrWhiteSpace(shift.Icon))
@@ -102,19 +103,19 @@ namespace ShiftScheduler.Services
             return document.GeneratePdf();
         }
 
-        private string GetTransportSummary(Shift shift)
+        private string GetTransportSummary(ShiftTransport? transport)
         {
             var transportLines = new List<string>();
 
-            if (shift.MorningTransport != null && !string.IsNullOrEmpty(shift.MorningTransport.DepartureTime))
+            if (transport?.MorningTransport != null && !string.IsNullOrEmpty(transport.MorningTransport.DepartureTime))
             {
-                var morningInfo = FormatTransportConnection(shift.MorningTransport, "Morning");
+                var morningInfo = FormatTransportConnection(transport.MorningTransport, "Morning");
                 transportLines.Add(morningInfo);
             }
 
-            if (shift.AfternoonTransport != null && !string.IsNullOrEmpty(shift.AfternoonTransport.DepartureTime))
+            if (transport?.AfternoonTransport != null && !string.IsNullOrEmpty(transport.AfternoonTransport.DepartureTime))
             {
-                var afternoonInfo = FormatTransportConnection(shift.AfternoonTransport, "Afternoon");
+                var afternoonInfo = FormatTransportConnection(transport.AfternoonTransport, "Afternoon");
                 transportLines.Add(afternoonInfo);
             }
 

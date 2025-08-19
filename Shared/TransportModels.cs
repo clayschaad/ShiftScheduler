@@ -1,5 +1,12 @@
 namespace ShiftScheduler.Shared.Models
 {
+    public class ShiftTransport
+    {
+        public string ShiftName { get; set; } = string.Empty;
+        public TransportConnection? MorningTransport { get; set; }
+        public TransportConnection? AfternoonTransport { get; set; }
+    }
+
     public class TransportConfiguration
     {
         public string StartStation { get; set; } = string.Empty;

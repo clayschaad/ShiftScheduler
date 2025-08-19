@@ -44,16 +44,18 @@ namespace ShiftScheduler.Server.Controllers
         [HttpPost("export_ics")]
         public async Task<IActionResult> ExportIcs([FromBody] Dictionary<DateTime, string> schedule)
         {
-            var enrichedShifts = await _enrichmentService.EnrichShiftsWithTransportAsync(_shiftService.GetShifts(), schedule);
-            var ics = _icsService.GenerateIcs(schedule, enrichedShifts);
+            var shifts = _shiftService.GetShifts();
+            var shiftTransports = await _enrichmentService.EnrichShiftsWithTransportAsync(shifts, schedule);
+            var ics = _icsService.GenerateIcs(schedule, shifts, shiftTransports);
             return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", "schedule.ics");
         }
 
          [HttpPost("export_pdf")]
         public async Task<IActionResult> ExportPdf([FromBody] Dictionary<DateTime, string> schedule)
         {
-            var enrichedShifts = await _enrichmentService.EnrichShiftsWithTransportAsync(_shiftService.GetShifts(), schedule);
-            var pdf = _pdfExportService.GenerateMonthlySchedulePdf(schedule, enrichedShifts);
+            var shifts = _shiftService.GetShifts();
+            var shiftTransports = await _enrichmentService.EnrichShiftsWithTransportAsync(shifts, schedule);
+            var pdf = _pdfExportService.GenerateMonthlySchedulePdf(schedule, shifts, shiftTransports);
             return File(pdf, "application/pdf", "schedule.pdf");
         }
     }
