@@ -41,11 +41,87 @@ namespace ShiftScheduler.Server.Controllers
             return Ok(connection);
         }
 
+        [HttpPost("shift_transport")]
+        public async Task<IActionResult> GetShiftTransport([FromBody] ShiftTransportRequest request)
+        {
+            var shift = _shiftService.GetShifts().FirstOrDefault(s => s.Name == request.ShiftName);
+            if (shift == null)
+            {
+                return NotFound($"Shift '{request.ShiftName}' not found");
+            }
+
+            TransportConnection? morningTransport = null;
+            TransportConnection? afternoonTransport = null;
+
+            // Get transport for morning shift if it has morning time
+            if (!string.IsNullOrEmpty(shift.MorningTime))
+            {
+                var morningStartTime = ParseShiftTime(request.Date, shift.MorningTime);
+                if (morningStartTime.HasValue)
+                {
+                    morningTransport = await _transportService.GetConnectionAsync(morningStartTime.Value);
+                }
+            }
+
+            // Get transport for afternoon shift if it has afternoon time
+            if (!string.IsNullOrEmpty(shift.AfternoonTime))
+            {
+                var afternoonStartTime = ParseShiftTime(request.Date, shift.AfternoonTime);
+                if (afternoonStartTime.HasValue)
+                {
+                    afternoonTransport = await _transportService.GetConnectionAsync(afternoonStartTime.Value);
+                }
+            }
+
+            var shiftWithTransport = new ShiftWithTransport
+            {
+                Date = request.Date,
+                Shift = shift,
+                MorningTransport = morningTransport,
+                AfternoonTransport = afternoonTransport
+            };
+
+            return Ok(shiftWithTransport);
+        }
+
+        private static DateTime? ParseShiftTime(DateTime date, string timeRange)
+        {
+            try
+            {
+                var times = timeRange.Split('-');
+                if (times.Length > 0 && TimeSpan.TryParse(times[0], out var startTime))
+                {
+                    return date.Add(startTime);
+                }
+            }
+            catch
+            {
+                // Ignore parsing errors
+            }
+            return null;
+        }
+
         [HttpPost("export_ics")]
         public async Task<IActionResult> ExportIcs([FromBody] Dictionary<DateTime, string> schedule)
         {
             var shifts = _shiftService.GetShifts();
             var shiftTransports = await _enrichmentService.EnrichShiftsWithTransportAsync(shifts, schedule);
+            var ics = _icsService.GenerateIcs(schedule, shifts, shiftTransports);
+            return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", "schedule.ics");
+        }
+
+        [HttpPost("export_ics_with_transport")]
+        public IActionResult ExportIcsWithTransport([FromBody] List<ShiftWithTransport> shiftsWithTransport)
+        {
+            var schedule = shiftsWithTransport.ToDictionary(s => s.Date, s => s.Shift.Name);
+            var shifts = shiftsWithTransport.Select(s => s.Shift).DistinctBy(s => s.Name).ToList();
+            var shiftTransports = shiftsWithTransport.Select(s => new ShiftTransport
+            {
+                ShiftName = s.Shift.Name,
+                MorningTransport = s.MorningTransport,
+                AfternoonTransport = s.AfternoonTransport
+            }).DistinctBy(s => s.ShiftName).ToList();
+            
             var ics = _icsService.GenerateIcs(schedule, shifts, shiftTransports);
             return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", "schedule.ics");
         }
@@ -58,11 +134,33 @@ namespace ShiftScheduler.Server.Controllers
             var pdf = _pdfExportService.GenerateMonthlySchedulePdf(schedule, shifts, shiftTransports);
             return File(pdf, "application/pdf", "schedule.pdf");
         }
+
+        [HttpPost("export_pdf_with_transport")]
+        public IActionResult ExportPdfWithTransport([FromBody] List<ShiftWithTransport> shiftsWithTransport)
+        {
+            var schedule = shiftsWithTransport.ToDictionary(s => s.Date, s => s.Shift.Name);
+            var shifts = shiftsWithTransport.Select(s => s.Shift).DistinctBy(s => s.Name).ToList();
+            var shiftTransports = shiftsWithTransport.Select(s => new ShiftTransport
+            {
+                ShiftName = s.Shift.Name,
+                MorningTransport = s.MorningTransport,
+                AfternoonTransport = s.AfternoonTransport
+            }).DistinctBy(s => s.ShiftName).ToList();
+            
+            var pdf = _pdfExportService.GenerateMonthlySchedulePdf(schedule, shifts, shiftTransports);
+            return File(pdf, "application/pdf", "schedule.pdf");
+        }
     }
 
     public class TransportConnectionRequest
     {
         public DateTime ArrivalTime { get; set; }
         public string? EndStation { get; set; }
+    }
+
+    public class ShiftTransportRequest
+    {
+        public string ShiftName { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
     }
 }

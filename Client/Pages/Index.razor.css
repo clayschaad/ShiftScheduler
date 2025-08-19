@@ -141,3 +141,25 @@
     visibility: visible;
     opacity: 1;
 }
+
+/* Transport information styling */
+.transport-info {
+    margin-top: 8px;
+    padding: 4px;
+    background-color: #e8f4fd;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: #2c5aa0;
+    word-wrap: break-word;
+    min-height: 20px;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
