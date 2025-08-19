@@ -102,31 +102,13 @@ namespace ShiftScheduler.Server.Controllers
         }
 
         [HttpPost("export_ics")]
-        public async Task<IActionResult> ExportIcs([FromBody] Dictionary<DateTime, string> schedule)
-        {
-            var shifts = _shiftService.GetShifts();
-            var shiftTransports = await _enrichmentService.EnrichShiftsWithTransportAsync(shifts, schedule);
-            var ics = _icsService.GenerateIcs(schedule, shifts, shiftTransports);
-            return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", "schedule.ics");
-        }
-
-        [HttpPost("export_ics_with_transport")]
         public IActionResult ExportIcsWithTransport([FromBody] List<ShiftWithTransport> shiftsWithTransport)
         {
             var ics = _icsService.GenerateIcs(shiftsWithTransport);
             return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", "schedule.ics");
         }
 
-         [HttpPost("export_pdf")]
-        public async Task<IActionResult> ExportPdf([FromBody] Dictionary<DateTime, string> schedule)
-        {
-            var shifts = _shiftService.GetShifts();
-            var shiftTransports = await _enrichmentService.EnrichShiftsWithTransportAsync(shifts, schedule);
-            var pdf = _pdfExportService.GenerateMonthlySchedulePdf(schedule, shifts, shiftTransports);
-            return File(pdf, "application/pdf", "schedule.pdf");
-        }
-
-        [HttpPost("export_pdf_with_transport")]
+        [HttpPost("export_pdf")]
         public IActionResult ExportPdfWithTransport([FromBody] List<ShiftWithTransport> shiftsWithTransport)
         {
             var pdf = _pdfExportService.GenerateMonthlySchedulePdf(shiftsWithTransport);

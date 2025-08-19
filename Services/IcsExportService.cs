@@ -8,66 +8,6 @@ namespace ShiftScheduler.Services
 {
     public class IcsExportService
     {
-        public string GenerateIcs(Dictionary<DateTime, string> schedule, List<Shift> shifts, List<ShiftTransport>? shiftTransports = null)
-        {
-            var calendar = new Calendar();
-
-            foreach (var kvp in schedule)
-            {
-                var date = kvp.Key;
-                var shiftName = kvp.Value;
-                var shift = shifts.FirstOrDefault(s => s.Name == shiftName);
-                var transport = shiftTransports?.FirstOrDefault(t => t.ShiftName == shiftName);
-
-                if (shift == null || (string.IsNullOrEmpty(shift.MorningTime) && string.IsNullOrEmpty(shift.AfternoonTime)))
-                    continue;
-
-                if (!string.IsNullOrEmpty(shift.MorningTime))
-                {
-                    var times = shift.MorningTime.Split('-');
-                    var summary = $"{shift.Name} (Morning)";
-                    var description = "";
-
-                    if (transport?.MorningTransport != null && !string.IsNullOrEmpty(transport.MorningTransport.DepartureTime))
-                    {
-                        var transportSummary = FormatTransportInfo(transport.MorningTransport);
-                        description = $"Transport: {transportSummary}";
-                    }
-
-                    calendar.Events.Add(new CalendarEvent
-                    {
-                        Summary = summary,
-                        Description = description,
-                        Start = new CalDateTime(date.Add(TimeSpan.Parse(times[0]))),
-                        End = new CalDateTime(date.Add(TimeSpan.Parse(times[1])))
-                    });
-                }
-
-                if (!string.IsNullOrEmpty(shift.AfternoonTime))
-                {
-                    var times = shift.AfternoonTime.Split('-');
-                    var summary = $"{shift.Name} (Afternoon)";
-                    var description = "";
-
-                    if (transport?.AfternoonTransport != null && !string.IsNullOrEmpty(transport.AfternoonTransport.DepartureTime))
-                    {
-                        var transportSummary = FormatTransportInfo(transport.AfternoonTransport);
-                        description = $"Transport: {transportSummary}";
-                    }
-
-                    calendar.Events.Add(new CalendarEvent
-                    {
-                        Summary = summary,
-                        Description = description,
-                        Start = new CalDateTime(date.Add(TimeSpan.Parse(times[0]))),
-                        End = new CalDateTime(date.Add(TimeSpan.Parse(times[1])))
-                    });
-                }
-            }
-
-            return new CalendarSerializer().SerializeToString(calendar);
-        }
-
         public string GenerateIcs(List<ShiftWithTransport> shiftsWithTransport)
         {
             var calendar = new Calendar();

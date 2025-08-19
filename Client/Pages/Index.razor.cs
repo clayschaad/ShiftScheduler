@@ -91,7 +91,7 @@ namespace ShiftScheduler.Client.Pages
         private async Task ExportToIcs()
         {
             var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
-            var response = await HttpClient.PostAsJsonAsync("api/shift/export_ics_with_transport", shiftsWithTransportList);
+            var response = await HttpClient.PostAsJsonAsync("api/shift/export_ics", shiftsWithTransportList);
             var bytes = await response.Content.ReadAsByteArrayAsync();
             var base64 = Convert.ToBase64String(bytes);
             var fileUrl = $"data:text/calendar;base64,{base64}";
@@ -101,7 +101,7 @@ namespace ShiftScheduler.Client.Pages
         private async Task ExportToPdf()
         {
             var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
-            var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf_with_transport", shiftsWithTransportList);
+            var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf", shiftsWithTransportList);
             var bytes = await response.Content.ReadAsByteArrayAsync();
             var base64 = Convert.ToBase64String(bytes);
             var fileUrl = $"data:application/octet-stream;base64,{base64}";
