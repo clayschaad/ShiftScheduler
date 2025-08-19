@@ -14,19 +14,22 @@ namespace ShiftScheduler.Services
             _config = config;
         }
 
-        public async Task<TransportConnection?> GetConnectionAsync(DateTime arrivalTime, string? customEndStation = null)
+        public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime, string? customEndStation = null)
         {
             try
             {
                 var endStation = customEndStation ?? _config.EndStation;
-                var arrivalTimeStr = arrivalTime.ToString("HH:mm");
                 
-                // Calculate departure time (use configured safety buffer)
-                var searchTime = arrivalTime.AddMinutes(-_config.SafetyBufferMinutes);
+                // Calculate the latest acceptable arrival time (shift start time - safety buffer)
+                var latestArrivalTime = shiftStartTime.AddMinutes(-_config.SafetyBufferMinutes);
+                
+                // Search for connections starting from a reasonable time before the latest acceptable arrival
+                // Start searching from 90 minutes before the latest acceptable time
+                var searchTime = latestArrivalTime.AddMinutes(-90);
                 var searchTimeStr = searchTime.ToString("yyyy-MM-dd");
                 var searchHourStr = searchTime.ToString("HH:mm");
 
-                var url = $"{_config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(_config.StartStation)}&to={Uri.EscapeDataString(endStation)}&date={searchTimeStr}&time={searchHourStr}&limit=3";
+                var url = $"{_config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(_config.StartStation)}&to={Uri.EscapeDataString(endStation)}&date={searchTimeStr}&time={searchHourStr}&limit=15";
 
                 var response = await _httpClient.GetStringAsync(url);
                 var apiResponse = JsonSerializer.Deserialize<TransportApiResponse>(response, new JsonSerializerOptions
@@ -36,8 +39,8 @@ namespace ShiftScheduler.Services
 
                 if (apiResponse?.Connections?.Count > 0)
                 {
-                    // Find the best connection that arrives before the desired time
-                    var bestConnection = FindBestConnection(apiResponse.Connections, arrivalTime);
+                    // Find the best connection that arrives before the required time
+                    var bestConnection = FindBestConnection(apiResponse.Connections, latestArrivalTime);
                     return MapToTransportConnection(bestConnection);
                 }
 
@@ -47,13 +50,15 @@ namespace ShiftScheduler.Services
             {
                 // Log the exception and return a mock connection for demonstration
                 Console.WriteLine($"Error fetching transport connection: {ex.Message}");
-                return CreateMockConnection(arrivalTime);
+                return CreateMockConnection(shiftStartTime);
             }
         }
 
-        private TransportConnection CreateMockConnection(DateTime arrivalTime)
+        private TransportConnection CreateMockConnection(DateTime shiftStartTime)
         {
-            // Create a realistic mock connection for demonstration
+            // Create a realistic mock connection that arrives before shift start with safety buffer
+            var latestArrivalTime = shiftStartTime.AddMinutes(-_config.SafetyBufferMinutes);
+            var arrivalTime = latestArrivalTime.AddMinutes(-5); // Arrive 5 minutes before the latest acceptable time
             var departureTime = arrivalTime.AddMinutes(-45); // 45 minutes journey time
             
             return new TransportConnection
@@ -97,22 +102,50 @@ namespace ShiftScheduler.Services
             };
         }
 
-        private TransportApiConnection? FindBestConnection(List<TransportApiConnection> connections, DateTime targetArrival)
+        private TransportApiConnection? FindBestConnection(List<TransportApiConnection> connections, DateTime latestArrivalTime)
         {
+            // Filter connections that arrive before the latest acceptable time
+            var validConnections = new List<TransportApiConnection>();
+            
             foreach (var connection in connections)
             {
                 if (DateTime.TryParse(connection.To?.Arrival, out var arrivalTime))
                 {
-                    // Find a connection that arrives before or at the target time
-                    if (arrivalTime.TimeOfDay <= targetArrival.TimeOfDay)
+                    // Compare arrival time with latest acceptable time
+                    if (arrivalTime <= latestArrivalTime)
                     {
-                        return connection;
+                        validConnections.Add(connection);
                     }
                 }
             }
 
-            // If no connection arrives before target, return the first one
-            return connections.FirstOrDefault();
+            if (validConnections.Count > 0)
+            {
+                // Sort by arrival time (earliest first) and take the one that arrives 
+                // with reasonable margin but not too early
+                var sortedValid = validConnections
+                    .OrderBy(c => DateTime.Parse(c.To?.Arrival ?? "00:00"))
+                    .ToList();
+                
+                // Prefer a connection that arrives with 10-45 minutes margin
+                var preferredMarginMin = 10;
+                var preferredMarginMax = 45;
+                
+                var idealConnection = sortedValid.LastOrDefault(c =>
+                {
+                    var arrivalTime = DateTime.Parse(c.To?.Arrival ?? "00:00");
+                    var marginMinutes = (latestArrivalTime - arrivalTime).TotalMinutes;
+                    return marginMinutes >= preferredMarginMin && marginMinutes <= preferredMarginMax;
+                });
+                
+                // If we found an ideal connection, use it; otherwise use the latest valid one
+                return idealConnection ?? sortedValid.Last();
+            }
+
+            // If no valid connections, return the earliest available
+            return connections
+                .OrderBy(c => DateTime.Parse(c.To?.Arrival ?? "23:59"))
+                .FirstOrDefault();
         }
 
         private TransportConnection MapToTransportConnection(TransportApiConnection? apiConnection)
