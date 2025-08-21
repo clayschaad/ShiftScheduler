@@ -1,11 +1,13 @@
-/* Header buttons */
-.header-buttons {
+/* Top navigation buttons */
+.top-nav-buttons {
+    position: fixed;
+    top: 0;
+    right: 24px;
     display: flex;
-    justify-content: flex-end;
     gap: 10px;
-    margin-bottom: 20px;
-    padding: 10px 0;
-    border-bottom: 1px solid #ddd;
+    z-index: 1000;
+    padding: 14px 0;
+    background-color: transparent;
 }
 
 /* Loading overlay */
