@@ -12,33 +12,26 @@ namespace ShiftScheduler.Server.Controllers
         private readonly IcsExportService _icsService;
         private readonly PdfExportService _pdfExportService;
         private readonly TransportService _transportService;
-        private readonly ShiftEnrichmentService _enrichmentService;
+        private readonly TransportConfiguration _transportConfig;
 
         public ShiftController(
             ShiftService shiftService, 
             IcsExportService icsService, 
             PdfExportService pdfExportService, 
             TransportService transportService,
-            ShiftEnrichmentService enrichmentService)
+            TransportConfiguration transportConfig)
         {
             _shiftService = shiftService;
             _icsService = icsService;
             _pdfExportService = pdfExportService;
             _transportService = transportService;
-            _enrichmentService = enrichmentService;
+            _transportConfig = transportConfig;
         }
 
         [HttpGet("shifts")]
         public IActionResult GetShifts()
         {
             return Ok(_shiftService.GetShifts());
-        }
-
-        [HttpPost("transport_connection")]
-        public async Task<IActionResult> GetTransportConnection([FromBody] TransportConnectionRequest request)
-        {
-            var connection = await _transportService.GetConnectionAsync(request.ArrivalTime, request.EndStation);
-            return Ok(connection);
         }
 
         [HttpPost("shift_transport")]
@@ -64,12 +57,31 @@ namespace ShiftScheduler.Server.Controllers
             }
 
             // Get transport for afternoon shift if it has afternoon time
+            // But only if the break between morning and afternoon is long enough
             if (!string.IsNullOrEmpty(shift.AfternoonTime))
             {
-                var afternoonStartTime = ParseShiftTime(request.Date, shift.AfternoonTime);
-                if (afternoonStartTime.HasValue)
+                var shouldLoadAfternoonTransport = true;
+                
+                // If both morning and afternoon shifts exist, check break duration
+                if (!string.IsNullOrEmpty(shift.MorningTime) && !string.IsNullOrEmpty(shift.AfternoonTime))
                 {
-                    afternoonTransport = await _transportService.GetConnectionAsync(afternoonStartTime.Value);
+                    var morningEndTime = ParseShiftEndTime(request.Date, shift.MorningTime);
+                    var afternoonStartTime = ParseShiftTime(request.Date, shift.AfternoonTime);
+                    
+                    if (morningEndTime.HasValue && afternoonStartTime.HasValue)
+                    {
+                        var breakDurationMinutes = (afternoonStartTime.Value - morningEndTime.Value).TotalMinutes;
+                        shouldLoadAfternoonTransport = breakDurationMinutes >= _transportConfig.MinBreakMinutes;
+                    }
+                }
+                
+                if (shouldLoadAfternoonTransport)
+                {
+                    var afternoonStartTime = ParseShiftTime(request.Date, shift.AfternoonTime);
+                    if (afternoonStartTime.HasValue)
+                    {
+                        afternoonTransport = await _transportService.GetConnectionAsync(afternoonStartTime.Value);
+                    }
                 }
             }
 
@@ -78,7 +90,7 @@ namespace ShiftScheduler.Server.Controllers
                 Date = request.Date,
                 Shift = shift,
                 MorningTransport = morningTransport,
-                AfternoonTransport = afternoonTransport
+                AfternoonTransport = afternoonTransport,
             };
 
             return Ok(shiftWithTransport);
@@ -101,6 +113,23 @@ namespace ShiftScheduler.Server.Controllers
             return null;
         }
 
+        private static DateTime? ParseShiftEndTime(DateTime date, string timeRange)
+        {
+            try
+            {
+                var times = timeRange.Split('-');
+                if (times.Length > 1 && TimeSpan.TryParse(times[1], out var endTime))
+                {
+                    return date.Add(endTime);
+                }
+            }
+            catch
+            {
+                // Ignore parsing errors
+            }
+            return null;
+        }
+
         [HttpPost("export_ics")]
         public IActionResult ExportIcsWithTransport([FromBody] List<ShiftWithTransport> shiftsWithTransport)
         {
@@ -114,12 +143,6 @@ namespace ShiftScheduler.Server.Controllers
             var pdf = _pdfExportService.GenerateMonthlySchedulePdf(shiftsWithTransport);
             return File(pdf, "application/pdf", "schedule.pdf");
         }
-    }
-
-    public class TransportConnectionRequest
-    {
-        public DateTime ArrivalTime { get; set; }
-        public string? EndStation { get; set; }
     }
 
     public class ShiftTransportRequest

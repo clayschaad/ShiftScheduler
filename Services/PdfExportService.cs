@@ -175,7 +175,7 @@ namespace ShiftScheduler.Services
             
             var mainJourney = transport.Sections?.FirstOrDefault()?.Journey;
             var trainInfo = mainJourney != null ? $"{mainJourney.Category} {mainJourney.Number}" : "Train";
-
+            
             return $"{timeOfDay}: {trainInfo} {departure}→{arrival}";
         }
 

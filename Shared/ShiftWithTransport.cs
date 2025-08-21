@@ -18,7 +18,7 @@ namespace ShiftScheduler.Shared.Models
             return AfternoonTransport != null ? FormatTransportSummary(AfternoonTransport) : string.Empty;
         }
         
-        private static string FormatTransportSummary(TransportConnection connection)
+        private string FormatTransportSummary(TransportConnection connection)
         {
             if (string.IsNullOrEmpty(connection.DepartureTime)) return string.Empty;
             

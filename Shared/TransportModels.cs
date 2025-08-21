@@ -1,18 +1,12 @@
 namespace ShiftScheduler.Shared.Models
 {
-    public class ShiftTransport
-    {
-        public string ShiftName { get; set; } = string.Empty;
-        public TransportConnection? MorningTransport { get; set; }
-        public TransportConnection? AfternoonTransport { get; set; }
-    }
-
     public class TransportConfiguration
     {
         public string StartStation { get; set; } = string.Empty;
         public string EndStation { get; set; } = string.Empty;
         public string ApiBaseUrl { get; set; } = string.Empty;
         public int SafetyBufferMinutes { get; set; } = 30;
+        public int MinBreakMinutes { get; set; } = 60;
     }
 
     public class TransportConnection
@@ -64,6 +58,11 @@ namespace ShiftScheduler.Shared.Models
         public TransportApiCheckpoint? To { get; set; }
         public string Duration { get; set; } = string.Empty;
         public List<TransportApiSection> Sections { get; set; } = new();
+
+        public override string ToString()
+        {
+            return $"{From} - {To}";
+        }
     }
 
     public class TransportApiCheckpoint
@@ -72,6 +71,11 @@ namespace ShiftScheduler.Shared.Models
         public string Departure { get; set; } = string.Empty;
         public string Arrival { get; set; } = string.Empty;
         public string Platform { get; set; } = string.Empty;
+
+        public override string ToString()
+        {
+            return $"{Station?.Name}: {Departure} - {Arrival}";
+        }
     }
 
     public class TransportApiStation
