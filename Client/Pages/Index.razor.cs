@@ -19,9 +19,14 @@ namespace ShiftScheduler.Client.Pages
         private int EditMonth { get; set; }
         private int EditYear { get; set; }
         private bool _isLoadingTransport = false;
+        private bool _isLoadingInitial = false;
+
+        private string CurrentMonthYear => new DateTime(EditYear, EditMonth, 1).ToString("MMMM yyyy");
 
         protected override async Task OnInitializedAsync()
         {
+            _isLoadingInitial = true;
+            
             (EditMonth, EditYear) = GetNextMonthAndYear();
 
             DaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(EditYear, EditMonth))
@@ -31,6 +36,9 @@ namespace ShiftScheduler.Client.Pages
             Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
 
             await LoadScheduleFromStorage();
+            
+            _isLoadingInitial = false;
+            StateHasChanged();
         }
 
         private (int nextMonth, int year) GetNextMonthAndYear()
@@ -229,6 +237,25 @@ namespace ShiftScheduler.Client.Pages
                 summaries.Add($"🌆 {afternoonTransport}");
                 
             return string.Join(" | ", summaries);
+        }
+
+        // Helper method to get shift times for display
+        public string GetShiftTimes(DateTime date)
+        {
+            if (!SelectedSchedule.TryGetValue(date, out var shiftName))
+                return string.Empty;
+                
+            var shift = Shifts.FirstOrDefault(s => s.Name == shiftName);
+            if (shift == null)
+                return string.Empty;
+                
+            var times = new List<string>();
+            if (!string.IsNullOrEmpty(shift.MorningTime))
+                times.Add(shift.MorningTime);
+            if (!string.IsNullOrEmpty(shift.AfternoonTime))
+                times.Add(shift.AfternoonTime);
+                
+            return string.Join(" | ", times);
         }
     }
 }

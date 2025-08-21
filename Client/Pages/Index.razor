@@ -1,6 +1,24 @@
 ﻿@page "/"
 
-<h3>Shift Scheduler</h3>
+<div class="top-nav-buttons">
+    <button class="reset-btn" @onclick="ResetSchedule" disabled="@_isLoadingInitial">Reset Schedule</button>
+    <button class="btn export-btn" @onclick="ExportToIcs" disabled="@_isLoadingInitial">Export to ICS</button>
+    <button class="btn export-btn" @onclick="ExportToPdf" disabled="@_isLoadingInitial">Export to PDF</button>
+</div>
+
+<h3>Shift Scheduler - @CurrentMonthYear</h3>
+
+@if (_isLoadingInitial)
+{
+    <div class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner">⏳</div>
+            <p>Loading shifts and transport data...</p>
+        </div>
+    </div>
+}
+else
+{
 
 <div class="calendar-grid">
     @foreach (var day in DaysInMonth)
@@ -31,6 +49,9 @@
             </div>
             @if (SelectedSchedule.ContainsKey(day))
             {
+                <div class="shift-times">
+                    <small>@GetShiftTimes(day)</small>
+                </div>
                 <div class="transport-info">
                     <small>@GetTransportSummary(day)</small>
                 </div>
@@ -38,12 +59,4 @@
         </div>
     }
 </div>
-
-<div class="reset-section">
-    <button class="reset-btn" @onclick="ResetSchedule">Reset Schedule</button>
-</div>
-
-<div class="export-buttons">
-    <button class="btn export-btn" @onclick="ExportToIcs">Export to ICS</button>
-    <button class="btn export-btn" @onclick="ExportToPdf">Export to PDF</button>
-</div>
+}
