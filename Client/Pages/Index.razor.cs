@@ -104,7 +104,7 @@ namespace ShiftScheduler.Client.Pages
             var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf", shiftsWithTransportList);
             var bytes = await response.Content.ReadAsByteArrayAsync();
             var base64 = Convert.ToBase64String(bytes);
-            await JSRuntime.InvokeVoidAsync("downloadFile", "schedule.pdf", "application/pdf", base64);
+            await JSRuntime.InvokeVoidAsync("downloadFile", $"Schedule {EditYear}-{EditMonth:00}.pdf", "application/pdf", base64);
         }
 
         private async Task SaveScheduleToStorage()
