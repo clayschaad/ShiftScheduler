@@ -23,13 +23,12 @@ namespace ShiftScheduler.Services
                 // Calculate the latest acceptable arrival time (shift start time - safety buffer)
                 var latestArrivalTime = shiftStartTime.AddMinutes(-_config.SafetyBufferMinutes);
                 
-                // Search for connections starting from a reasonable time before the latest acceptable arrival
-                // Start searching from 90 minutes before the latest acceptable time
-                var searchTime = latestArrivalTime.AddMinutes(-90);
+                // Search for arrival time
+                var searchTime = shiftStartTime;
                 var searchTimeStr = searchTime.ToString("yyyy-MM-dd");
                 var searchHourStr = searchTime.ToString("HH:mm");
 
-                var url = $"{_config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(_config.StartStation)}&to={Uri.EscapeDataString(endStation)}&date={searchTimeStr}&time={searchHourStr}&limit=15";
+                var url = $"{_config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(_config.StartStation)}&to={Uri.EscapeDataString(endStation)}&date={searchTimeStr}&time={searchHourStr}&isArrivalTime=1&limit=5";
 
                 var response = await _httpClient.GetStringAsync(url);
                 var apiResponse = JsonSerializer.Deserialize<TransportApiResponse>(response, new JsonSerializerOptions
@@ -121,25 +120,11 @@ namespace ShiftScheduler.Services
 
             if (validConnections.Count > 0)
             {
-                // Sort by arrival time (earliest first) and take the one that arrives 
-                // with reasonable margin but not too early
                 var sortedValid = validConnections
                     .OrderBy(c => DateTime.Parse(c.To?.Arrival ?? "00:00"))
                     .ToList();
-                
-                // Prefer a connection that arrives with 10-45 minutes margin
-                var preferredMarginMin = 10;
-                var preferredMarginMax = 45;
-                
-                var idealConnection = sortedValid.LastOrDefault(c =>
-                {
-                    var arrivalTime = DateTime.Parse(c.To?.Arrival ?? "00:00");
-                    var marginMinutes = (latestArrivalTime - arrivalTime).TotalMinutes;
-                    return marginMinutes >= preferredMarginMin && marginMinutes <= preferredMarginMax;
-                });
-                
-                // If we found an ideal connection, use it; otherwise use the latest valid one
-                return idealConnection ?? sortedValid.Last();
+
+                return sortedValid.Last();
             }
 
             // If no valid connections, return the earliest available

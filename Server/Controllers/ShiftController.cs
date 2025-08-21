@@ -12,7 +12,6 @@ namespace ShiftScheduler.Server.Controllers
         private readonly IcsExportService _icsService;
         private readonly PdfExportService _pdfExportService;
         private readonly TransportService _transportService;
-        private readonly ShiftEnrichmentService _enrichmentService;
         private readonly TransportConfiguration _transportConfig;
 
         public ShiftController(
@@ -20,14 +19,12 @@ namespace ShiftScheduler.Server.Controllers
             IcsExportService icsService, 
             PdfExportService pdfExportService, 
             TransportService transportService,
-            ShiftEnrichmentService enrichmentService,
             TransportConfiguration transportConfig)
         {
             _shiftService = shiftService;
             _icsService = icsService;
             _pdfExportService = pdfExportService;
             _transportService = transportService;
-            _enrichmentService = enrichmentService;
             _transportConfig = transportConfig;
         }
 
@@ -35,13 +32,6 @@ namespace ShiftScheduler.Server.Controllers
         public IActionResult GetShifts()
         {
             return Ok(_shiftService.GetShifts());
-        }
-
-        [HttpPost("transport_connection")]
-        public async Task<IActionResult> GetTransportConnection([FromBody] TransportConnectionRequest request)
-        {
-            var connection = await _transportService.GetConnectionAsync(request.ArrivalTime, request.EndStation);
-            return Ok(connection);
         }
 
         [HttpPost("shift_transport")]
@@ -101,7 +91,6 @@ namespace ShiftScheduler.Server.Controllers
                 Shift = shift,
                 MorningTransport = morningTransport,
                 AfternoonTransport = afternoonTransport,
-                DepartureStation = _transportConfig.StartStation
             };
 
             return Ok(shiftWithTransport);
@@ -154,12 +143,6 @@ namespace ShiftScheduler.Server.Controllers
             var pdf = _pdfExportService.GenerateMonthlySchedulePdf(shiftsWithTransport);
             return File(pdf, "application/pdf", "schedule.pdf");
         }
-    }
-
-    public class TransportConnectionRequest
-    {
-        public DateTime ArrivalTime { get; set; }
-        public string? EndStation { get; set; }
     }
 
     public class ShiftTransportRequest

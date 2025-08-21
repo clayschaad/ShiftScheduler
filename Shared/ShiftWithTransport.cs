@@ -7,7 +7,6 @@ namespace ShiftScheduler.Shared.Models
         public Shift Shift { get; init; } = new();
         public TransportConnection? MorningTransport { get; init; }
         public TransportConnection? AfternoonTransport { get; init; }
-        public string DepartureStation { get; init; } = string.Empty;
         
         public string GetMorningTransportSummary()
         {
@@ -29,9 +28,7 @@ namespace ShiftScheduler.Shared.Models
             var mainJourney = connection.Sections?.FirstOrDefault()?.Journey;
             var trainInfo = mainJourney != null ? $"{mainJourney.Category}{mainJourney.Number}" : "Train";
             
-            var departureStationInfo = !string.IsNullOrEmpty(DepartureStation) ? $"{DepartureStation} " : "";
-            
-            return $"{trainInfo} {departureStationInfo}{departure}→{arrival}";
+            return $"{trainInfo} {departure}→{arrival}";
         }
     }
 }

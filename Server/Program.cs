@@ -15,7 +15,6 @@ builder.Services.AddSingleton<ShiftService>();
 builder.Services.AddSingleton<IcsExportService>();
 builder.Services.AddSingleton<PdfExportService>();
 builder.Services.AddSingleton<TransportService>();
-builder.Services.AddSingleton<ShiftEnrichmentService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
