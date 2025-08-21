@@ -98,8 +98,28 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var icon = shiftWithTransport?.Shift.Icon ?? "";
-                table.Cell().Element(CellStyleMiddle).Text(icon);
+                var shift = shiftWithTransport?.Shift;
+                
+                if (shift != null && shift.IsPngIcon)
+                {
+                    // For PNG icons, embed the image
+                    var iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", shift.Icon);
+                    if (File.Exists(iconPath))
+                    {
+                        table.Cell().Element(CellStyleMiddle).Image(iconPath).FitArea();
+                    }
+                    else
+                    {
+                        // Fallback to shift name if PNG not found
+                        table.Cell().Element(CellStyleMiddle).Text(shift.Name);
+                    }
+                }
+                else
+                {
+                    // For text/emoji icons, render as text
+                    var icon = shift?.Icon ?? "";
+                    table.Cell().Element(CellStyleMiddle).Text(icon);
+                }
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
             {
