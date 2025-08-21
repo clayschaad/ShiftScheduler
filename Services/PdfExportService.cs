@@ -98,20 +98,27 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var icon = shiftWithTransport?.Shift.Icon ?? "";
-                table.Cell().Element(CellStyleMiddle).Text(icon);
-            }
-            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
-            {
-                RenderEmptyCell(table);
-            }
-
-            // Shifname
-            foreach (var day in Enumerable.Range(0, dayInWeek))
-            {
-                var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var shiftName = shiftWithTransport?.Shift.Name ?? "";
-                table.Cell().Element(CellStyleMiddle).Text(shiftName);
+                var shift = shiftWithTransport?.Shift;
+                
+                if (shift != null && shift.IsPngIcon)
+                {
+                    // For PNG icons, embed the image
+                    var iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", shift.Icon);
+                    if (File.Exists(iconPath))
+                    {
+                        table.Cell().Height(24).Element(CellStyleMiddle).Image(iconPath).FitArea();
+                    }
+                    else
+                    {
+                        table.Cell().Element(CellStyleMiddle).Text(shift.Name);
+                    }
+                }
+                else
+                {
+                    // For text/emoji icons, render as text
+                    var icon = shift?.Icon ?? shift?.Name;
+                    table.Cell().Element(CellStyleMiddle).Text(icon);
+                }
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
             {
@@ -122,7 +129,7 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var morningTime = $"🌅 {shiftWithTransport?.Shift.MorningTime}";
+                var morningTime = shiftWithTransport?.Shift.MorningTime.Length > 0 ? $"🌅 {shiftWithTransport?.Shift.MorningTime}" : "";
                 table.Cell().Element(CellStyleMiddle).Text(morningTime);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
@@ -134,7 +141,7 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var afternoonTime = $"🌆 {shiftWithTransport?.Shift.AfternoonTime}";
+                var afternoonTime = shiftWithTransport?.Shift.AfternoonTime.Length > 0 ? $"🌆 {shiftWithTransport?.Shift.AfternoonTime}" : "";
                 table.Cell().Element(CellStyleMiddle).Text(afternoonTime);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
@@ -181,7 +188,7 @@ namespace ShiftScheduler.Services
                 transportLines.Add(afternoonInfo);
             }
 
-            return transportLines.Count > 0 ? string.Join("\n", transportLines) : "-";
+            return transportLines.Count > 0 ? string.Join("\n", transportLines) : "";
         }
 
         private static string FormatTransportConnection(TransportConnection transport)
