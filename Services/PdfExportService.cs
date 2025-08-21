@@ -72,6 +72,7 @@ namespace ShiftScheduler.Services
                 foreach (var week in weeks)
                 {
                     RenderShiftForWeek(table, week, scheduleDictionary);
+                    RenderEmptyRow(table);
                 }
             });
         }
@@ -81,6 +82,8 @@ namespace ShiftScheduler.Services
         {
             var weekDates = week.ToList();
             var dayInWeek = weekDates.Count;
+            
+            // Date
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var dddd = weekDates.ElementAtOrDefault(day).ToString("dd.MM.yyyy (ddd)");
@@ -90,7 +93,20 @@ namespace ShiftScheduler.Services
             {
                 RenderEmptyCell(table);
             }
+            
+            // Icon
+            foreach (var day in Enumerable.Range(0, dayInWeek))
+            {
+                var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
+                var icon = shiftWithTransport?.Shift.Icon ?? "";
+                table.Cell().Element(CellStyleMiddle).Text(icon);
+            }
+            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
+            {
+                RenderEmptyCell(table);
+            }
 
+            // Shifname
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
@@ -102,10 +118,11 @@ namespace ShiftScheduler.Services
                 RenderEmptyCell(table);
             }
 
+            // Morning times
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var morningTime = shiftWithTransport?.Shift.MorningTime ?? "";
+                var morningTime = $"🌅 {shiftWithTransport?.Shift.MorningTime}";
                 table.Cell().Element(CellStyleMiddle).Text(morningTime);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
@@ -113,28 +130,19 @@ namespace ShiftScheduler.Services
                 RenderEmptyCell(table);
             }
 
+            // Afternoon times
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var afternoonTime = shiftWithTransport?.Shift.AfternoonTime ?? "";
+                var afternoonTime = $"🌆 {shiftWithTransport?.Shift.AfternoonTime}";
                 table.Cell().Element(CellStyleMiddle).Text(afternoonTime);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
             {
                 RenderEmptyCell(table);
             }
-
-            foreach (var day in Enumerable.Range(0, dayInWeek))
-            {
-                var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var icon = shiftWithTransport?.Shift.Icon ?? "";
-                table.Cell().Element(CellStyleMiddle).Text(icon);
-            }
-            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
-            {
-                RenderEmptyCell(table);
-            }
             
+            // Transport
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
@@ -142,6 +150,14 @@ namespace ShiftScheduler.Services
                 table.Cell().Element(CellStyleLast).Text(transportInfo);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
+            {
+                RenderEmptyCell(table);
+            }
+        }
+        
+        private static void RenderEmptyRow(TableDescriptor table)
+        {
+            foreach (var day in Enumerable.Range(0, 7))
             {
                 RenderEmptyCell(table);
             }
@@ -155,28 +171,25 @@ namespace ShiftScheduler.Services
 
             if (shiftWithTransport.MorningTransport != null && !string.IsNullOrEmpty(shiftWithTransport.MorningTransport.DepartureTime))
             {
-                var morningInfo = FormatTransportConnection(shiftWithTransport.MorningTransport, "Morning");
+                var morningInfo = FormatTransportConnection(shiftWithTransport.MorningTransport);
                 transportLines.Add(morningInfo);
             }
 
             if (shiftWithTransport.AfternoonTransport != null && !string.IsNullOrEmpty(shiftWithTransport.AfternoonTransport.DepartureTime))
             {
-                var afternoonInfo = FormatTransportConnection(shiftWithTransport.AfternoonTransport, "Afternoon");
+                var afternoonInfo = FormatTransportConnection(shiftWithTransport.AfternoonTransport);
                 transportLines.Add(afternoonInfo);
             }
 
             return transportLines.Count > 0 ? string.Join("\n", transportLines) : "-";
         }
 
-        private static string FormatTransportConnection(TransportConnection transport, string timeOfDay)
+        private static string FormatTransportConnection(TransportConnection transport)
         {
             var departure = DateTime.TryParse(transport.DepartureTime, out var dep) ? dep.ToString("HH:mm") : transport.DepartureTime;
             var arrival = DateTime.TryParse(transport.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : transport.ArrivalTime;
-            
-            var mainJourney = transport.Sections?.FirstOrDefault()?.Journey;
-            var trainInfo = mainJourney != null ? $"{mainJourney.Category} {mainJourney.Number}" : "Train";
-            
-            return $"{timeOfDay}: {trainInfo} {departure}→{arrival}";
+
+            return $"🚂 {departure}→{arrival}";
         }
 
         private static void RenderEmptyCell(TableDescriptor table)

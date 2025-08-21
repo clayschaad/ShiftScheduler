@@ -230,11 +230,11 @@ namespace ShiftScheduler.Client.Pages
             
             var morningTransport = shiftWithTransport.GetMorningTransportSummary();
             if (!string.IsNullOrEmpty(morningTransport))
-                summaries.Add($"🌅 {morningTransport}");
+                summaries.Add($"🚂 {morningTransport}");
                 
             var afternoonTransport = shiftWithTransport.GetAfternoonTransportSummary();
             if (!string.IsNullOrEmpty(afternoonTransport))
-                summaries.Add($"🌆 {afternoonTransport}");
+                summaries.Add($"🚂 {afternoonTransport}");
                 
             return string.Join(" | ", summaries);
         }
@@ -250,10 +250,12 @@ namespace ShiftScheduler.Client.Pages
                 return string.Empty;
                 
             var times = new List<string>();
+            
             if (!string.IsNullOrEmpty(shift.MorningTime))
-                times.Add(shift.MorningTime);
+                times.Add($"🌅 {shift.MorningTime}");
+                
             if (!string.IsNullOrEmpty(shift.AfternoonTime))
-                times.Add(shift.AfternoonTime);
+                times.Add($"🌆 {shift.AfternoonTime}");
                 
             return string.Join(" | ", times);
         }
