@@ -28,7 +28,7 @@ namespace ShiftScheduler.Services
 
                     if (shiftWithTransport.MorningTransport != null && !string.IsNullOrEmpty(shiftWithTransport.MorningTransport.DepartureTime))
                     {
-                        var transportSummary = FormatTransportInfo(shiftWithTransport.MorningTransport);
+                        var transportSummary = FormatTransportInfo(shiftWithTransport.MorningTransport, shiftWithTransport.DepartureStation);
                         description = $"Transport: {transportSummary}";
                     }
 
@@ -49,7 +49,7 @@ namespace ShiftScheduler.Services
 
                     if (shiftWithTransport.AfternoonTransport != null && !string.IsNullOrEmpty(shiftWithTransport.AfternoonTransport.DepartureTime))
                     {
-                        var transportSummary = FormatTransportInfo(shiftWithTransport.AfternoonTransport);
+                        var transportSummary = FormatTransportInfo(shiftWithTransport.AfternoonTransport, shiftWithTransport.DepartureStation);
                         description = $"Transport: {transportSummary}";
                     }
 
@@ -66,18 +66,20 @@ namespace ShiftScheduler.Services
             return new CalendarSerializer().SerializeToString(calendar);
         }
 
-        private string FormatTransportInfo(TransportConnection transport)
+        private string FormatTransportInfo(TransportConnection transport, string departureStation)
         {
             var departure = DateTime.TryParse(transport.DepartureTime, out var dep) ? dep.ToString("HH:mm") : transport.DepartureTime;
             var arrival = DateTime.TryParse(transport.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : transport.ArrivalTime;
             
+            var departureStationInfo = !string.IsNullOrEmpty(departureStation) ? $"{departureStation} " : "";
+            
             var mainJourney = transport.Sections?.FirstOrDefault()?.Journey;
             if (mainJourney != null)
             {
-                return $"{mainJourney.Category} {mainJourney.Number}: {departure} → {arrival}";
+                return $"{mainJourney.Category} {mainJourney.Number}: {departureStationInfo}{departure} → {arrival}";
             }
             
-            return $"{departure} → {arrival}";
+            return $"{departureStationInfo}{departure} → {arrival}";
         }
     }
 }

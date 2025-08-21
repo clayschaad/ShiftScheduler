@@ -13,19 +13,22 @@ namespace ShiftScheduler.Server.Controllers
         private readonly PdfExportService _pdfExportService;
         private readonly TransportService _transportService;
         private readonly ShiftEnrichmentService _enrichmentService;
+        private readonly TransportConfiguration _transportConfig;
 
         public ShiftController(
             ShiftService shiftService, 
             IcsExportService icsService, 
             PdfExportService pdfExportService, 
             TransportService transportService,
-            ShiftEnrichmentService enrichmentService)
+            ShiftEnrichmentService enrichmentService,
+            TransportConfiguration transportConfig)
         {
             _shiftService = shiftService;
             _icsService = icsService;
             _pdfExportService = pdfExportService;
             _transportService = transportService;
             _enrichmentService = enrichmentService;
+            _transportConfig = transportConfig;
         }
 
         [HttpGet("shifts")]
@@ -64,12 +67,31 @@ namespace ShiftScheduler.Server.Controllers
             }
 
             // Get transport for afternoon shift if it has afternoon time
+            // But only if the break between morning and afternoon is long enough
             if (!string.IsNullOrEmpty(shift.AfternoonTime))
             {
-                var afternoonStartTime = ParseShiftTime(request.Date, shift.AfternoonTime);
-                if (afternoonStartTime.HasValue)
+                var shouldLoadAfternoonTransport = true;
+                
+                // If both morning and afternoon shifts exist, check break duration
+                if (!string.IsNullOrEmpty(shift.MorningTime) && !string.IsNullOrEmpty(shift.AfternoonTime))
                 {
-                    afternoonTransport = await _transportService.GetConnectionAsync(afternoonStartTime.Value);
+                    var morningEndTime = ParseShiftEndTime(request.Date, shift.MorningTime);
+                    var afternoonStartTime = ParseShiftTime(request.Date, shift.AfternoonTime);
+                    
+                    if (morningEndTime.HasValue && afternoonStartTime.HasValue)
+                    {
+                        var breakDurationMinutes = (afternoonStartTime.Value - morningEndTime.Value).TotalMinutes;
+                        shouldLoadAfternoonTransport = breakDurationMinutes >= _transportConfig.MinBreakMinutes;
+                    }
+                }
+                
+                if (shouldLoadAfternoonTransport)
+                {
+                    var afternoonStartTime = ParseShiftTime(request.Date, shift.AfternoonTime);
+                    if (afternoonStartTime.HasValue)
+                    {
+                        afternoonTransport = await _transportService.GetConnectionAsync(afternoonStartTime.Value);
+                    }
                 }
             }
 
@@ -78,7 +100,8 @@ namespace ShiftScheduler.Server.Controllers
                 Date = request.Date,
                 Shift = shift,
                 MorningTransport = morningTransport,
-                AfternoonTransport = afternoonTransport
+                AfternoonTransport = afternoonTransport,
+                DepartureStation = _transportConfig.StartStation
             };
 
             return Ok(shiftWithTransport);
@@ -92,6 +115,23 @@ namespace ShiftScheduler.Server.Controllers
                 if (times.Length > 0 && TimeSpan.TryParse(times[0], out var startTime))
                 {
                     return date.Add(startTime);
+                }
+            }
+            catch
+            {
+                // Ignore parsing errors
+            }
+            return null;
+        }
+
+        private static DateTime? ParseShiftEndTime(DateTime date, string timeRange)
+        {
+            try
+            {
+                var times = timeRange.Split('-');
+                if (times.Length > 1 && TimeSpan.TryParse(times[1], out var endTime))
+                {
+                    return date.Add(endTime);
                 }
             }
             catch

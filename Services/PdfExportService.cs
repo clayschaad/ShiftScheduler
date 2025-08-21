@@ -155,20 +155,20 @@ namespace ShiftScheduler.Services
 
             if (shiftWithTransport.MorningTransport != null && !string.IsNullOrEmpty(shiftWithTransport.MorningTransport.DepartureTime))
             {
-                var morningInfo = FormatTransportConnection(shiftWithTransport.MorningTransport, "Morning");
+                var morningInfo = FormatTransportConnection(shiftWithTransport.MorningTransport, "Morning", shiftWithTransport.DepartureStation);
                 transportLines.Add(morningInfo);
             }
 
             if (shiftWithTransport.AfternoonTransport != null && !string.IsNullOrEmpty(shiftWithTransport.AfternoonTransport.DepartureTime))
             {
-                var afternoonInfo = FormatTransportConnection(shiftWithTransport.AfternoonTransport, "Afternoon");
+                var afternoonInfo = FormatTransportConnection(shiftWithTransport.AfternoonTransport, "Afternoon", shiftWithTransport.DepartureStation);
                 transportLines.Add(afternoonInfo);
             }
 
             return transportLines.Count > 0 ? string.Join("\n", transportLines) : "-";
         }
 
-        private static string FormatTransportConnection(TransportConnection transport, string timeOfDay)
+        private static string FormatTransportConnection(TransportConnection transport, string timeOfDay, string departureStation)
         {
             var departure = DateTime.TryParse(transport.DepartureTime, out var dep) ? dep.ToString("HH:mm") : transport.DepartureTime;
             var arrival = DateTime.TryParse(transport.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : transport.ArrivalTime;
@@ -176,7 +176,9 @@ namespace ShiftScheduler.Services
             var mainJourney = transport.Sections?.FirstOrDefault()?.Journey;
             var trainInfo = mainJourney != null ? $"{mainJourney.Category} {mainJourney.Number}" : "Train";
 
-            return $"{timeOfDay}: {trainInfo} {departure}→{arrival}";
+            var departureStationInfo = !string.IsNullOrEmpty(departureStation) ? $"{departureStation} " : "";
+
+            return $"{timeOfDay}: {trainInfo} {departureStationInfo}{departure}→{arrival}";
         }
 
         private static void RenderEmptyCell(TableDescriptor table)
