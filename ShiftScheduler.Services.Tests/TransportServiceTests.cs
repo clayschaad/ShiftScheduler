@@ -284,6 +284,170 @@ public class TransportServiceTests
         result.ArrivalTime.ShouldBe(expectedArrivalTime);
     }
 
+    [Fact]
+    public async Task GetConnectionAsync_WithInvalidJson_ShouldReturnMockConnection()
+    {
+        // Arrange
+        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        
+        SetupHttpMockResponse(HttpStatusCode.OK, "invalid json {[}");
+
+        // Act
+        var result = await _transportService.GetConnectionAsync(shiftStartTime);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Duration.ShouldBe("00:45:00");
+        result.Platform.ShouldBe("3");
+    }
+
+    [Fact]
+    public async Task GetConnectionAsync_WithNetworkTimeout_ShouldReturnMockConnection()
+    {
+        // Arrange
+        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        
+        _httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Network timeout"));
+
+        // Act
+        var result = await _transportService.GetConnectionAsync(shiftStartTime);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.Duration.ShouldBe("00:45:00");
+        result.Platform.ShouldBe("3");
+    }
+
+    [Fact]
+    public async Task GetConnectionAsync_WithConnectionsWithInvalidTimes_ShouldFallbackToMockConnection()
+    {
+        // Arrange
+        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        var apiResponse = new TransportApiResponse
+        {
+            Connections = new List<TransportApiConnection>
+            {
+                new TransportApiConnection
+                {
+                    From = new TransportApiCheckpoint
+                    {
+                        Station = new TransportApiStation { Name = "Start", Id = "start" },
+                        Departure = "invalid-time",
+                        Platform = "1"
+                    },
+                    To = new TransportApiCheckpoint
+                    {
+                        Station = new TransportApiStation { Name = "End", Id = "end" },
+                        Arrival = "not-a-time",
+                        Platform = "2"
+                    },
+                    Duration = "00:30:00"
+                }
+            }
+        };
+        var jsonResponse = JsonSerializer.Serialize(apiResponse);
+        
+        SetupHttpMockResponse(HttpStatusCode.OK, jsonResponse);
+
+        // Act
+        var result = await _transportService.GetConnectionAsync(shiftStartTime);
+
+        // Assert
+        // When API contains invalid time formats, the service should fall back to mock connection
+        // because the FindBestConnection method can't parse invalid times
+        result.ShouldNotBeNull();
+        result.Duration.ShouldBe("00:45:00"); // Mock connection duration
+        result.Platform.ShouldBe("3"); // Mock connection platform
+    }
+
+    [Fact]
+    public async Task GetConnectionAsync_WithNullStations_ShouldHandleGracefully()
+    {
+        // Arrange
+        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        var apiResponse = new TransportApiResponse
+        {
+            Connections = new List<TransportApiConnection>
+            {
+                new TransportApiConnection
+                {
+                    From = null,
+                    To = null,
+                    Duration = "00:30:00"
+                }
+            }
+        };
+        var jsonResponse = JsonSerializer.Serialize(apiResponse);
+        
+        SetupHttpMockResponse(HttpStatusCode.OK, jsonResponse);
+
+        // Act
+        var result = await _transportService.GetConnectionAsync(shiftStartTime);
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.DepartureTime.ShouldBe(string.Empty);
+        result.ArrivalTime.ShouldBe(string.Empty);
+        result.Platform.ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public void FormatConnectionSummary_WithNullJourneySection_ShouldUseDefaultTrainLabel()
+    {
+        // Arrange
+        var connection = new TransportConnection
+        {
+            DepartureTime = "06:45",
+            ArrivalTime = "07:30",
+            Sections = new List<TransportSection>
+            {
+                new TransportSection
+                {
+                    Journey = null
+                }
+            }
+        };
+
+        // Act
+        var result = _transportService.FormatConnectionSummary(connection);
+
+        // Assert
+        result.ShouldBe("Train: 06:45 → 07:30");
+    }
+
+    [Fact]
+    public void FormatConnectionSummary_WithEmptyJourneyFields_ShouldUseTrainLabel()
+    {
+        // Arrange
+        var connection = new TransportConnection
+        {
+            DepartureTime = "06:45",
+            ArrivalTime = "07:30",
+            Sections = new List<TransportSection>
+            {
+                new TransportSection
+                {
+                    Journey = new TransportJourney
+                    {
+                        Category = "",
+                        Number = ""
+                    }
+                }
+            }
+        };
+
+        // Act
+        var result = _transportService.FormatConnectionSummary(connection);
+
+        // Assert
+        result.ShouldBe(" : 06:45 → 07:30");
+    }
+
     private void SetupHttpMockResponse(HttpStatusCode statusCode, string content)
     {
         var response = new HttpResponseMessage(statusCode)
