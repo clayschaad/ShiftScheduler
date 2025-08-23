@@ -7,8 +7,8 @@ namespace ShiftScheduler.Shared
         public string ApiBaseUrl { get; set; } = string.Empty;
         public int SafetyBufferMinutes { get; set; } = 30;
         public int MinBreakMinutes { get; set; } = 60;
-        public int MaxEarlyArrivalMinutes { get; set; } = 60; // Y parameter
-        public int MaxLateArrivalMinutes { get; set; } = 15; // X parameter
+        public int MaxEarlyArrivalMinutes { get; set; } = 60;
+        public int MaxLateArrivalMinutes { get; set; } = 15;
     }
 
     public class TransportConnection
