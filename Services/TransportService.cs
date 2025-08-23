@@ -9,9 +9,12 @@ namespace ShiftScheduler.Services
         {
             var latestArrivalTime = shiftStartTime.AddMinutes(-config.SafetyBufferMinutes);
             var searchDate = shiftStartTime.ToString("yyyy-MM-dd");
-            var searchTime = shiftStartTime.ToString("HH:mm");
+            
+            // To allow connections that arrive after shift starts, we search from earlier time
+            // and request more connections to cover the full range
+            var searchTime = shiftStartTime.AddMinutes(-config.MaxEarlyArrivalMinutes - config.SafetyBufferMinutes).ToString("HH:mm");
 
-            var url = $"{config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(config.StartStation)}&to={Uri.EscapeDataString(config.EndStation)}&date={searchDate}&time={searchTime}&isArrivalTime=1&limit=5";
+            var url = $"{config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(config.StartStation)}&to={Uri.EscapeDataString(config.EndStation)}&date={searchDate}&time={searchTime}&isArrivalTime=1&limit=10";
             var response = await httpClient.GetStringAsync(url);
             var apiResponse = JsonSerializer.Deserialize<TransportApiResponse>(response, new JsonSerializerOptions
             {
@@ -21,7 +24,12 @@ namespace ShiftScheduler.Services
             if (apiResponse?.Connections.Count > 0)
             {
                 var allConnections = apiResponse.Connections.Select(MapToTransportConnection).ToList();
-                return TransportConnectionCalculator.FindBestConnection(allConnections, latestArrivalTime);
+                return TransportConnectionCalculator.FindBestConnection(
+                    allConnections, 
+                    shiftStartTime, 
+                    config.SafetyBufferMinutes, 
+                    config.MaxEarlyArrivalMinutes, 
+                    config.MaxLateArrivalMinutes);
             }
 
             return null;
