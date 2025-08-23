@@ -1,136 +1,30 @@
-using ShiftScheduler.Shared.Models;
 using System.Text.Json;
+using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
 {
-    public class TransportService
+    public class TransportService(HttpClient httpClient, TransportConfiguration config)
     {
-        private readonly HttpClient _httpClient;
-        private readonly TransportConfiguration _config;
-
-        public TransportService(HttpClient httpClient, TransportConfiguration config)
+        public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime)
         {
-            _httpClient = httpClient;
-            _config = config;
-        }
+            var latestArrivalTime = shiftStartTime.AddMinutes(-config.SafetyBufferMinutes);
+            var searchDate = shiftStartTime.ToString("yyyy-MM-dd");
+            var searchTime = shiftStartTime.ToString("HH:mm");
 
-        public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime, string? customEndStation = null)
-        {
-            try
+            var url = $"{config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(config.StartStation)}&to={Uri.EscapeDataString(config.EndStation)}&date={searchDate}&time={searchTime}&isArrivalTime=1&limit=5";
+            var response = await httpClient.GetStringAsync(url);
+            var apiResponse = JsonSerializer.Deserialize<TransportApiResponse>(response, new JsonSerializerOptions
             {
-                var endStation = customEndStation ?? _config.EndStation;
-                
-                // Calculate the latest acceptable arrival time (shift start time - safety buffer)
-                var latestArrivalTime = shiftStartTime.AddMinutes(-_config.SafetyBufferMinutes);
-                
-                // Search for arrival time
-                var searchTime = shiftStartTime;
-                var searchTimeStr = searchTime.ToString("yyyy-MM-dd");
-                var searchHourStr = searchTime.ToString("HH:mm");
+                PropertyNameCaseInsensitive = true
+            });
 
-                var url = $"{_config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(_config.StartStation)}&to={Uri.EscapeDataString(endStation)}&date={searchTimeStr}&time={searchHourStr}&isArrivalTime=1&limit=5";
-
-                var response = await _httpClient.GetStringAsync(url);
-                var apiResponse = JsonSerializer.Deserialize<TransportApiResponse>(response, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (apiResponse?.Connections?.Count > 0)
-                {
-                    // Find the best connection that arrives before the required time
-                    var bestConnection = FindBestConnection(apiResponse.Connections, latestArrivalTime);
-                    return MapToTransportConnection(bestConnection);
-                }
-
-                return null;
-            }
-            catch (Exception ex)
+            if (apiResponse?.Connections.Count > 0)
             {
-                // Log the exception and return a mock connection for demonstration
-                Console.WriteLine($"Error fetching transport connection: {ex.Message}");
-                return CreateMockConnection(shiftStartTime);
-            }
-        }
-
-        private TransportConnection CreateMockConnection(DateTime shiftStartTime)
-        {
-            // Create a realistic mock connection that arrives before shift start with safety buffer
-            var latestArrivalTime = shiftStartTime.AddMinutes(-_config.SafetyBufferMinutes);
-            var arrivalTime = latestArrivalTime.AddMinutes(-5); // Arrive 5 minutes before the latest acceptable time
-            var departureTime = arrivalTime.AddMinutes(-45); // 45 minutes journey time
-            
-            return new TransportConnection
-            {
-                DepartureTime = departureTime.ToString("HH:mm"),
-                ArrivalTime = arrivalTime.ToString("HH:mm"),
-                Duration = "00:45:00",
-                Platform = "3",
-                Sections = new List<TransportSection>
-                {
-                    new TransportSection
-                    {
-                        Journey = new TransportJourney
-                        {
-                            Name = "S1",
-                            Category = "S",
-                            Number = "1"
-                        },
-                        Departure = new TransportCheckpoint
-                        {
-                            Station = new TransportStation
-                            {
-                                Name = _config.StartStation,
-                                Id = "start"
-                            },
-                            Departure = departureTime.ToString("HH:mm"),
-                            Platform = "3"
-                        },
-                        Arrival = new TransportCheckpoint
-                        {
-                            Station = new TransportStation
-                            {
-                                Name = _config.EndStation,
-                                Id = "end"
-                            },
-                            Arrival = arrivalTime.ToString("HH:mm"),
-                            Platform = "1"
-                        }
-                    }
-                }
-            };
-        }
-
-        private TransportApiConnection? FindBestConnection(List<TransportApiConnection> connections, DateTime latestArrivalTime)
-        {
-            // Filter connections that arrive before the latest acceptable time
-            var validConnections = new List<TransportApiConnection>();
-            
-            foreach (var connection in connections)
-            {
-                if (DateTime.TryParse(connection.To?.Arrival, out var arrivalTime))
-                {
-                    // Compare arrival time with latest acceptable time
-                    if (arrivalTime <= latestArrivalTime)
-                    {
-                        validConnections.Add(connection);
-                    }
-                }
+                var allConnections = apiResponse.Connections.Select(MapToTransportConnection).ToList();
+                return TransportConnectionCalculator.FindBestConnection(allConnections, latestArrivalTime);
             }
 
-            if (validConnections.Count > 0)
-            {
-                var sortedValid = validConnections
-                    .OrderBy(c => DateTime.Parse(c.To?.Arrival ?? "00:00"))
-                    .ToList();
-
-                return sortedValid.Last();
-            }
-
-            // If no valid connections, return the earliest available
-            return connections
-                .OrderBy(c => DateTime.Parse(c.To?.Arrival ?? "23:59"))
-                .FirstOrDefault();
+            return null;
         }
 
         private TransportConnection MapToTransportConnection(TransportApiConnection? apiConnection)
@@ -142,54 +36,92 @@ namespace ShiftScheduler.Services
             {
                 DepartureTime = apiConnection.From?.Departure ?? string.Empty,
                 ArrivalTime = apiConnection.To?.Arrival ?? string.Empty,
-                Duration = apiConnection.Duration ?? string.Empty,
+                Duration = apiConnection.Duration,
                 Platform = apiConnection.From?.Platform ?? string.Empty,
-                Sections = apiConnection.Sections?.Select(s => new TransportSection
+                Sections = apiConnection.Sections.Select(s => new TransportSection
                 {
                     Journey = s.Journey != null ? new TransportJourney
                     {
-                        Name = s.Journey.Name ?? string.Empty,
-                        Category = s.Journey.Category ?? string.Empty,
-                        Number = s.Journey.Number ?? string.Empty
+                        Name = s.Journey.Name,
+                        Category = s.Journey.Category,
+                        Number = s.Journey.Number
                     } : null,
                     Departure = s.Departure != null ? new TransportCheckpoint
                     {
                         Station = s.Departure.Station != null ? new TransportStation
                         {
-                            Name = s.Departure.Station.Name ?? string.Empty,
-                            Id = s.Departure.Station.Id ?? string.Empty
+                            Name = s.Departure.Station.Name,
+                            Id = s.Departure.Station.Id
                         } : null,
-                        Departure = s.Departure.Departure ?? string.Empty,
-                        Arrival = s.Departure.Arrival ?? string.Empty,
-                        Platform = s.Departure.Platform ?? string.Empty
+                        Departure = s.Departure.Departure,
+                        Arrival = s.Departure.Arrival,
+                        Platform = s.Departure.Platform
                     } : null,
                     Arrival = s.Arrival != null ? new TransportCheckpoint
                     {
                         Station = s.Arrival.Station != null ? new TransportStation
                         {
-                            Name = s.Arrival.Station.Name ?? string.Empty,
-                            Id = s.Arrival.Station.Id ?? string.Empty
+                            Name = s.Arrival.Station.Name,
+                            Id = s.Arrival.Station.Id
                         } : null,
-                        Departure = s.Arrival.Departure ?? string.Empty,
-                        Arrival = s.Arrival.Arrival ?? string.Empty,
-                        Platform = s.Arrival.Platform ?? string.Empty
+                        Departure = s.Arrival.Departure,
+                        Arrival = s.Arrival.Arrival,
+                        Platform = s.Arrival.Platform
                     } : null
-                }).ToList() ?? new List<TransportSection>()
+                }).ToList()
             };
         }
+    }
+    
+    // API Response models for OpenData CH Transport
+    public class TransportApiResponse
+    {
+        public List<TransportApiConnection> Connections { get; set; } = new();
+    }
 
-        public string FormatConnectionSummary(TransportConnection? connection)
+    public class TransportApiConnection
+    {
+        public TransportApiCheckpoint? From { get; set; }
+        public TransportApiCheckpoint? To { get; set; }
+        public string Duration { get; set; } = string.Empty;
+        public List<TransportApiSection> Sections { get; set; } = new();
+
+        public override string ToString()
         {
-            if (connection == null || string.IsNullOrEmpty(connection.DepartureTime))
-                return "No transport info";
-
-            var departure = DateTime.TryParse(connection.DepartureTime, out var dep) ? dep.ToString("HH:mm") : connection.DepartureTime;
-            var arrival = DateTime.TryParse(connection.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : connection.ArrivalTime;
-            
-            var mainJourney = connection.Sections?.FirstOrDefault()?.Journey;
-            var trainInfo = mainJourney != null ? $"{mainJourney.Category} {mainJourney.Number}" : "Train";
-
-            return $"{trainInfo}: {departure} → {arrival}";
+            return $"{From} - {To}";
         }
+    }
+
+    public class TransportApiCheckpoint
+    {
+        public TransportApiStation? Station { get; set; }
+        public string Departure { get; set; } = string.Empty;
+        public string Arrival { get; set; } = string.Empty;
+        public string Platform { get; set; } = string.Empty;
+
+        public override string ToString()
+        {
+            return $"{Station?.Name}: {Departure} - {Arrival}";
+        }
+    }
+
+    public class TransportApiStation
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+    }
+
+    public class TransportApiSection
+    {
+        public TransportApiJourney? Journey { get; set; }
+        public TransportApiCheckpoint? Departure { get; set; }
+        public TransportApiCheckpoint? Arrival { get; set; }
+    }
+
+    public class TransportApiJourney
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Number { get; set; } = string.Empty;
     }
 }

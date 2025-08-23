@@ -2,7 +2,7 @@ using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
-using ShiftScheduler.Shared.Models;
+using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
 {

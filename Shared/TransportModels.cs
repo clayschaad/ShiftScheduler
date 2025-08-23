@@ -1,4 +1,4 @@
-namespace ShiftScheduler.Shared.Models
+namespace ShiftScheduler.Shared
 {
     public class TransportConfiguration
     {
@@ -45,58 +45,4 @@ namespace ShiftScheduler.Shared.Models
         public string Name { get; set; } = string.Empty;
         public string Id { get; set; } = string.Empty;
     }
-
-    // API Response models for OpenData CH Transport
-    public class TransportApiResponse
-    {
-        public List<TransportApiConnection> Connections { get; set; } = new();
-    }
-
-    public class TransportApiConnection
-    {
-        public TransportApiCheckpoint? From { get; set; }
-        public TransportApiCheckpoint? To { get; set; }
-        public string Duration { get; set; } = string.Empty;
-        public List<TransportApiSection> Sections { get; set; } = new();
-
-        public override string ToString()
-        {
-            return $"{From} - {To}";
-        }
-    }
-
-    public class TransportApiCheckpoint
-    {
-        public TransportApiStation? Station { get; set; }
-        public string Departure { get; set; } = string.Empty;
-        public string Arrival { get; set; } = string.Empty;
-        public string Platform { get; set; } = string.Empty;
-
-        public override string ToString()
-        {
-            return $"{Station?.Name}: {Departure} - {Arrival}";
-        }
-    }
-
-    public class TransportApiStation
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Id { get; set; } = string.Empty;
-    }
-
-    public class TransportApiSection
-    {
-        public TransportApiJourney? Journey { get; set; }
-        public TransportApiCheckpoint? Departure { get; set; }
-        public TransportApiCheckpoint? Arrival { get; set; }
-    }
-
-    public class TransportApiJourney
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
-        public string Number { get; set; } = string.Empty;
-    }
-
-
 }

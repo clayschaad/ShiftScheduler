@@ -1,5 +1,5 @@
-using ShiftScheduler.Shared.Models;
 using ShiftScheduler.Services;
+using ShiftScheduler.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 

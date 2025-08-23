@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ShiftScheduler.Services;
-using ShiftScheduler.Shared.Models;
+using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Server.Controllers
 {

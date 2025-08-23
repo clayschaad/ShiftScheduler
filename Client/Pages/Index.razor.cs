@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using ShiftScheduler.Shared.Models;
 using System.Net.Http.Json;
 using System.Text.Json;
+using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Client.Pages
 {

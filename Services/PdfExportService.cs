@@ -1,8 +1,8 @@
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using ShiftScheduler.Shared.Models;
 using System.Globalization;
+using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
 {

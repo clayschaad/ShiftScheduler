@@ -1,4 +1,4 @@
-namespace ShiftScheduler.Shared.Models
+namespace ShiftScheduler.Shared
 {
     public class Shift
     {
