@@ -1,5 +1,5 @@
 ﻿
-using ShiftScheduler.Shared.Models;
+using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
 {

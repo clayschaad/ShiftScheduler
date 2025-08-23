@@ -1,4 +1,4 @@
-namespace ShiftScheduler.Shared.Models
+namespace ShiftScheduler.Shared
 {
     // View model that combines shift information with transport data for a specific date
     public record ShiftWithTransport
