@@ -12,9 +12,9 @@ namespace ShiftScheduler.Services
             
             // To allow connections that arrive after shift starts, we search from earlier time
             // and request more connections to cover the full range
-            var searchTime = shiftStartTime.AddMinutes(-config.MaxEarlyArrivalMinutes - config.SafetyBufferMinutes).ToString("HH:mm");
+            var searchTime = shiftStartTime.AddMinutes(config.MaxLateArrivalMinutes).ToString("HH:mm");
 
-            var url = $"{config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(config.StartStation)}&to={Uri.EscapeDataString(config.EndStation)}&date={searchDate}&time={searchTime}&isArrivalTime=1&limit=10";
+            var url = $"{config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(config.StartStation)}&to={Uri.EscapeDataString(config.EndStation)}&date={searchDate}&time={searchTime}&isArrivalTime=1&limit=5";
             var response = await httpClient.GetStringAsync(url);
             var apiResponse = JsonSerializer.Deserialize<TransportApiResponse>(response, new JsonSerializerOptions
             {
