@@ -25,7 +25,9 @@ public class TransportServiceTests
             EndStation = "Bern",
             ApiBaseUrl = "https://transport.opendata.ch/v1",
             SafetyBufferMinutes = 30,
-            MinBreakMinutes = 60
+            MinBreakMinutes = 60,
+            MaxEarlyArrivalMinutes = 60,
+            MaxLateArrivalMinutes = 15
         };
         
         _transportService = new TransportService(_httpClient, config);
