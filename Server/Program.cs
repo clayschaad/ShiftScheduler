@@ -15,7 +15,8 @@ builder.Services.AddHttpClient<TransportService>();
 builder.Services.AddSingleton<ShiftService>();
 builder.Services.AddSingleton<IcsExportService>();
 builder.Services.AddSingleton<PdfExportService>();
-builder.Services.AddSingleton<TransportService>();
+builder.Services.AddSingleton<ITransportApiService, TransportService>();
+builder.Services.AddSingleton<ITransportService, CachedTransportService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

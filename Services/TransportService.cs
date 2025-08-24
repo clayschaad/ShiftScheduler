@@ -1,10 +1,9 @@
 using System.Text.Json;
-using Microsoft.Extensions.Caching.Memory;
 using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
 {
-    public class TransportService(HttpClient httpClient, TransportConfiguration config, IMemoryCache cache)
+    public class TransportService(HttpClient httpClient, TransportConfiguration config) : ITransportApiService
     {
         public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime)
         {
@@ -15,16 +14,6 @@ namespace ShiftScheduler.Services
             // and request more connections to cover the full range
             var searchTime = shiftStartTime.AddMinutes(config.MaxLateArrivalMinutes).ToString("HH:mm");
 
-            // Generate cache key based on request parameters
-            var cacheKey = GenerateCacheKey(searchDate, searchTime);
-            
-            // Try to get from cache first
-            if (cache.TryGetValue(cacheKey, out TransportApiResponse? cachedResponse) && cachedResponse != null)
-            {
-                return ProcessApiResponse(cachedResponse, shiftStartTime);
-            }
-
-            // Not in cache, make API call
             var url = $"{config.ApiBaseUrl}/connections?from={Uri.EscapeDataString(config.StartStation)}&to={Uri.EscapeDataString(config.EndStation)}&date={searchDate}&time={searchTime}&isArrivalTime=1&limit=5";
             var response = await httpClient.GetStringAsync(url);
             var apiResponse = JsonSerializer.Deserialize<TransportApiResponse>(response, new JsonSerializerOptions
@@ -32,26 +21,6 @@ namespace ShiftScheduler.Services
                 PropertyNameCaseInsensitive = true
             });
 
-            // Cache the response if valid
-            if (apiResponse != null)
-            {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(config.CacheDurationDays)
-                };
-                cache.Set(cacheKey, apiResponse, cacheOptions);
-            }
-
-            return ProcessApiResponse(apiResponse, shiftStartTime);
-        }
-
-        private string GenerateCacheKey(string searchDate, string searchTime)
-        {
-            return $"transport_{config.StartStation}_{config.EndStation}_{searchDate}_{searchTime}";
-        }
-
-        private TransportConnection? ProcessApiResponse(TransportApiResponse? apiResponse, DateTime shiftStartTime)
-        {
             if (apiResponse?.Connections.Count > 0)
             {
                 var allConnections = apiResponse.Connections.Select(MapToTransportConnection).ToList();

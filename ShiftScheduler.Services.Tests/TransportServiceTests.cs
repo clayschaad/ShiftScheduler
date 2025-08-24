@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using Microsoft.Extensions.Caching.Memory;
 using Moq;
 using Moq.Protected;
 using ShiftScheduler.Services;
@@ -13,14 +12,12 @@ public class TransportServiceTests
 {
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
     private readonly HttpClient _httpClient;
-    private readonly IMemoryCache _memoryCache;
     private readonly TransportService _transportService;
 
     public TransportServiceTests()
     {
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
         _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
-        _memoryCache = new MemoryCache(new MemoryCacheOptions());
         
         var config = new TransportConfiguration
         {
@@ -34,7 +31,7 @@ public class TransportServiceTests
             CacheDurationDays = 1
         };
         
-        _transportService = new TransportService(_httpClient, config, _memoryCache);
+        _transportService = new TransportService(_httpClient, config);
     }
 
     [Fact]
@@ -117,63 +114,6 @@ public class TransportServiceTests
         // Valid connections: 07:15 and 07:25 (both arrive before 7:30)
         // Algorithm should return the latest valid: 07:25
         result.ArrivalTime.ShouldBe("2023-12-15T07:25:00");
-    }
-
-    [Fact]
-    public async Task GetConnectionAsync_WithCaching_ShouldCacheApiResponse()
-    {
-        // Arrange
-        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
-        var apiResponse = CreateValidApiResponse();
-        var jsonResponse = JsonSerializer.Serialize(apiResponse);
-        
-        SetupHttpMockResponse(HttpStatusCode.OK, jsonResponse);
-
-        // Act - First call should hit the API
-        var result1 = await _transportService.GetConnectionAsync(shiftStartTime);
-        
-        // Act - Second call should use cache
-        var result2 = await _transportService.GetConnectionAsync(shiftStartTime);
-
-        // Assert
-        result1.ShouldNotBeNull();
-        result2.ShouldNotBeNull();
-        result1.ArrivalTime.ShouldBe(result2.ArrivalTime);
-        result1.DepartureTime.ShouldBe(result2.DepartureTime);
-        
-        // Verify that HTTP call was made only once
-        _httpMessageHandlerMock.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.IsAny<HttpRequestMessage>(),
-            ItExpr.IsAny<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task GetConnectionAsync_WithDifferentDates_ShouldMakeSeparateApiCalls()
-    {
-        // Arrange
-        var shiftStartTime1 = new DateTime(2023, 12, 15, 8, 0, 0);
-        var shiftStartTime2 = new DateTime(2023, 12, 16, 8, 0, 0);
-        var apiResponse = CreateValidApiResponse();
-        var jsonResponse = JsonSerializer.Serialize(apiResponse);
-        
-        SetupHttpMockResponse(HttpStatusCode.OK, jsonResponse);
-
-        // Act - Different dates should result in different cache keys
-        var result1 = await _transportService.GetConnectionAsync(shiftStartTime1);
-        var result2 = await _transportService.GetConnectionAsync(shiftStartTime2);
-
-        // Assert
-        result1.ShouldNotBeNull();
-        result2.ShouldNotBeNull();
-        
-        // Verify that HTTP calls were made twice (different cache keys)
-        _httpMessageHandlerMock.Protected().Verify(
-            "SendAsync",
-            Times.Exactly(2),
-            ItExpr.IsAny<HttpRequestMessage>(),
-            ItExpr.IsAny<CancellationToken>());
     }
 
     private void SetupHttpMockResponse(HttpStatusCode statusCode, string content)
