@@ -9,7 +9,7 @@ namespace ShiftScheduler.Shared
         public int MinBreakMinutes { get; set; } = 60;
         public int MaxEarlyArrivalMinutes { get; set; } = 60;
         public int MaxLateArrivalMinutes { get; set; } = 15;
-        public int CacheDurationMinutes { get; set; } = 15;
+        public int CacheDurationDays { get; set; } = 1;
     }
 
     public class TransportConnection

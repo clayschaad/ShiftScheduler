@@ -37,7 +37,7 @@ namespace ShiftScheduler.Services
             {
                 var cacheOptions = new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.CacheDurationMinutes)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(config.CacheDurationDays)
                 };
                 cache.Set(cacheKey, apiResponse, cacheOptions);
             }

@@ -31,7 +31,7 @@ public class TransportServiceTests
             MinBreakMinutes = 60,
             MaxEarlyArrivalMinutes = 60,
             MaxLateArrivalMinutes = 15,
-            CacheDurationMinutes = 15
+            CacheDurationDays = 1
         };
         
         _transportService = new TransportService(_httpClient, config, _memoryCache);
