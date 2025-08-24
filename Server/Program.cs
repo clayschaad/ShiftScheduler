@@ -10,7 +10,7 @@ var transportConfig = builder.Configuration.GetSection("Transport").Get<Transpor
 // Register services
 builder.Services.AddSingleton(shifts);
 builder.Services.AddSingleton(transportConfig);
-builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IPersistentCache, FilePersistentCache>();
 builder.Services.AddHttpClient<TransportService>();
 builder.Services.AddSingleton<ShiftService>();
 builder.Services.AddSingleton<IcsExportService>();

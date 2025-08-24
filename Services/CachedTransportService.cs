@@ -1,9 +1,8 @@
-using Microsoft.Extensions.Caching.Memory;
 using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
 {
-    public class CachedTransportService(ITransportApiService transportService, TransportConfiguration config, IMemoryCache cache) : ITransportService
+    public class CachedTransportService(ITransportApiService transportService, TransportConfiguration config, IPersistentCache cache) : ITransportService
     {
         public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime)
         {
@@ -14,7 +13,8 @@ namespace ShiftScheduler.Services
             var cacheKey = GenerateCacheKey(searchDate, searchTime);
             
             // Try to get from cache first
-            if (cache.TryGetValue(cacheKey, out TransportConnection? cachedConnection) && cachedConnection != null)
+            var cachedConnection = await cache.GetAsync<TransportConnection>(cacheKey);
+            if (cachedConnection != null)
             {
                 return cachedConnection;
             }
@@ -25,11 +25,7 @@ namespace ShiftScheduler.Services
             // Cache the connection result if valid
             if (connection != null)
             {
-                var cacheOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(config.CacheDurationDays)
-                };
-                cache.Set(cacheKey, connection, cacheOptions);
+                await cache.SetAsync(cacheKey, connection, TimeSpan.FromDays(config.CacheDurationDays));
             }
 
             return connection;
