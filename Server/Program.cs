@@ -10,11 +10,13 @@ var transportConfig = builder.Configuration.GetSection("Transport").Get<Transpor
 // Register services
 builder.Services.AddSingleton(shifts);
 builder.Services.AddSingleton(transportConfig);
-builder.Services.AddHttpClient<TransportService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<TransportApiService>();
 builder.Services.AddSingleton<ShiftService>();
 builder.Services.AddSingleton<IcsExportService>();
 builder.Services.AddSingleton<PdfExportService>();
-builder.Services.AddSingleton<TransportService>();
+builder.Services.AddSingleton<ITransportApiService, TransportApiService>();
+builder.Services.AddSingleton<ITransportService, TransportService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

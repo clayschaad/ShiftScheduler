@@ -11,14 +11,14 @@ namespace ShiftScheduler.Server.Controllers
         private readonly ShiftService _shiftService;
         private readonly IcsExportService _icsService;
         private readonly PdfExportService _pdfExportService;
-        private readonly TransportService _transportService;
+        private readonly ITransportService _transportService;
         private readonly TransportConfiguration _transportConfig;
 
         public ShiftController(
             ShiftService shiftService, 
             IcsExportService icsService, 
             PdfExportService pdfExportService, 
-            TransportService transportService,
+            ITransportService transportService,
             TransportConfiguration transportConfig)
         {
             _shiftService = shiftService;
