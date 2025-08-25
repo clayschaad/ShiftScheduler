@@ -259,5 +259,26 @@ namespace ShiftScheduler.Client.Pages
                 
             return string.Join(" | ", times);
         }
+
+        private bool _showConfigDialog = false;
+
+        private void ShowConfiguration()
+        {
+            _showConfigDialog = true;
+            StateHasChanged();
+        }
+
+        private void HideConfiguration()
+        {
+            _showConfigDialog = false;
+            StateHasChanged();
+        }
+
+        private async Task OnConfigurationChanged()
+        {
+            // Reload shifts after configuration changes
+            Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
+            StateHasChanged();
+        }
     }
 }

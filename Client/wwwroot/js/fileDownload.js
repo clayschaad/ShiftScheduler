@@ -16,3 +16,18 @@ window.downloadFile = (filename, contentType, base64Data) => {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 };
+
+window.readFileAsText = (fileInput) => {
+    return new Promise((resolve, reject) => {
+        const file = fileInput.files[0];
+        if (!file) {
+            resolve('');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file);
+    });
+};
