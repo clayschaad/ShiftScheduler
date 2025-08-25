@@ -59,6 +59,3 @@ nunit-*.xml
 
 # mac files
 .DS_Store
-
-# Cache directories
-cache/
