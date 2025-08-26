@@ -11,6 +11,7 @@ namespace ShiftScheduler.Services.Tests;
 public class TransportApiServiceTests
 {
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly Mock<IConfigurationService> _configurationServiceMock;
     private readonly HttpClient _httpClient;
     private readonly TransportApiService _transportApiService;
 
@@ -18,6 +19,7 @@ public class TransportApiServiceTests
     {
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
         _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+        _configurationServiceMock = new Mock<IConfigurationService>();
         
         var config = new TransportConfiguration
         {
@@ -31,7 +33,11 @@ public class TransportApiServiceTests
             CacheDurationDays = 1
         };
         
-        _transportApiService = new TransportApiService(_httpClient, config);
+        _configurationServiceMock
+            .Setup(x => x.GetTransportConfiguration())
+            .Returns(config);
+        
+        _transportApiService = new TransportApiService(_httpClient, _configurationServiceMock.Object);
     }
 
     [Fact]

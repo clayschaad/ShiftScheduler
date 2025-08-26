@@ -16,8 +16,6 @@ var appConfiguration = new ApplicationConfiguration
 
 // Register services
 builder.Services.AddSingleton<IConfigurationService>(new ConfigurationService(appConfiguration));
-builder.Services.AddSingleton<List<Shift>>(provider => provider.GetRequiredService<IConfigurationService>().GetShifts());
-builder.Services.AddSingleton<TransportConfiguration>(provider => provider.GetRequiredService<IConfigurationService>().GetTransportConfiguration());
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<TransportApiService>();
 builder.Services.AddSingleton<ShiftService>();

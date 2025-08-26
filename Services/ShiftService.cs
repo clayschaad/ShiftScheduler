@@ -5,13 +5,13 @@ namespace ShiftScheduler.Services
 {
     public class ShiftService
     {
-        private readonly List<Shift> _shifts;
+        private readonly IConfigurationService _configurationService;
 
-        public ShiftService(List<Shift> shifts)
+        public ShiftService(IConfigurationService configurationService)
         {
-            _shifts = shifts;
+            _configurationService = configurationService;
         }
 
-        public List<Shift> GetShifts() => _shifts;
+        public List<Shift> GetShifts() => _configurationService.GetShifts();
     }
 }

@@ -12,20 +12,20 @@ namespace ShiftScheduler.Server.Controllers
         private readonly IcsExportService _icsService;
         private readonly PdfExportService _pdfExportService;
         private readonly ITransportService _transportService;
-        private readonly TransportConfiguration _transportConfig;
+        private readonly IConfigurationService _configurationService;
 
         public ShiftController(
             ShiftService shiftService, 
             IcsExportService icsService, 
             PdfExportService pdfExportService, 
             ITransportService transportService,
-            TransportConfiguration transportConfig)
+            IConfigurationService configurationService)
         {
             _shiftService = shiftService;
             _icsService = icsService;
             _pdfExportService = pdfExportService;
             _transportService = transportService;
-            _transportConfig = transportConfig;
+            _configurationService = configurationService;
         }
 
         [HttpGet("shifts")]
@@ -43,6 +43,7 @@ namespace ShiftScheduler.Server.Controllers
                 return NotFound($"Shift '{request.ShiftName}' not found");
             }
 
+            var transportConfig = _configurationService.GetTransportConfiguration();
             TransportConnection? morningTransport = null;
             TransportConnection? afternoonTransport = null;
 
@@ -71,7 +72,7 @@ namespace ShiftScheduler.Server.Controllers
                     if (morningEndTime.HasValue && afternoonStartTime.HasValue)
                     {
                         var breakDurationMinutes = (afternoonStartTime.Value - morningEndTime.Value).TotalMinutes;
-                        shouldLoadAfternoonTransport = breakDurationMinutes >= _transportConfig.MinBreakMinutes;
+                        shouldLoadAfternoonTransport = breakDurationMinutes >= transportConfig.MinBreakMinutes;
                     }
                 }
                 
