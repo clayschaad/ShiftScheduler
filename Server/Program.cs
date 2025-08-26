@@ -7,12 +7,17 @@ var builder = WebApplication.CreateBuilder(args);
 var shifts = builder.Configuration.GetSection("Shifts").Get<List<Shift>>() ?? new();
 var transportConfig = builder.Configuration.GetSection("Transport").Get<TransportConfiguration>() ?? new();
 
+// Create application configuration
+var appConfiguration = new ApplicationConfiguration
+{
+    Transport = transportConfig,
+    Shifts = shifts
+};
+
 // Register services
-builder.Services.AddSingleton(shifts);
-builder.Services.AddSingleton(transportConfig);
+builder.Services.AddSingleton<IConfigurationService>(new ConfigurationService(appConfiguration));
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<TransportApiService>();
-builder.Services.AddSingleton<ShiftService>();
 builder.Services.AddSingleton<IcsExportService>();
 builder.Services.AddSingleton<PdfExportService>();
 builder.Services.AddSingleton<ITransportApiService, TransportApiService>();

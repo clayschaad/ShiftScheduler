@@ -3,10 +3,12 @@ using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
 {
-    public class TransportApiService(HttpClient httpClient, TransportConfiguration config) : ITransportApiService
+    public class TransportApiService(HttpClient httpClient, IConfigurationService configurationService) : ITransportApiService
     {
         public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime)
         {
+            var config = configurationService.GetTransportConfiguration();
+            
             // To allow connections that arrive after shift starts, we search from earlier time
             // and request more connections to cover the full range
             var searchDate = shiftStartTime.ToString("yyyy-MM-dd");

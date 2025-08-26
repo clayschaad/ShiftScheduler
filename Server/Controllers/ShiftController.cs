@@ -8,41 +8,39 @@ namespace ShiftScheduler.Server.Controllers
     [Route("api/[controller]")]
     public class ShiftController : ControllerBase
     {
-        private readonly ShiftService _shiftService;
         private readonly IcsExportService _icsService;
         private readonly PdfExportService _pdfExportService;
         private readonly ITransportService _transportService;
-        private readonly TransportConfiguration _transportConfig;
+        private readonly IConfigurationService _configurationService;
 
         public ShiftController(
-            ShiftService shiftService, 
             IcsExportService icsService, 
             PdfExportService pdfExportService, 
             ITransportService transportService,
-            TransportConfiguration transportConfig)
+            IConfigurationService configurationService)
         {
-            _shiftService = shiftService;
             _icsService = icsService;
             _pdfExportService = pdfExportService;
             _transportService = transportService;
-            _transportConfig = transportConfig;
+            _configurationService = configurationService;
         }
 
         [HttpGet("shifts")]
         public IActionResult GetShifts()
         {
-            return Ok(_shiftService.GetShifts());
+            return Ok(_configurationService.GetShifts());
         }
 
         [HttpPost("shift_transport")]
         public async Task<IActionResult> GetShiftTransport([FromBody] ShiftTransportRequest request)
         {
-            var shift = _shiftService.GetShifts().FirstOrDefault(s => s.Name == request.ShiftName);
+            var shift = _configurationService.GetShifts().FirstOrDefault(s => s.Name == request.ShiftName);
             if (shift == null)
             {
                 return NotFound($"Shift '{request.ShiftName}' not found");
             }
 
+            var transportConfig = _configurationService.GetTransportConfiguration();
             TransportConnection? morningTransport = null;
             TransportConnection? afternoonTransport = null;
 
@@ -71,7 +69,7 @@ namespace ShiftScheduler.Server.Controllers
                     if (morningEndTime.HasValue && afternoonStartTime.HasValue)
                     {
                         var breakDurationMinutes = (afternoonStartTime.Value - morningEndTime.Value).TotalMinutes;
-                        shouldLoadAfternoonTransport = breakDurationMinutes >= _transportConfig.MinBreakMinutes;
+                        shouldLoadAfternoonTransport = breakDurationMinutes >= transportConfig.MinBreakMinutes;
                     }
                 }
                 
