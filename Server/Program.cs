@@ -18,7 +18,6 @@ var appConfiguration = new ApplicationConfiguration
 builder.Services.AddSingleton<IConfigurationService>(new ConfigurationService(appConfiguration));
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<TransportApiService>();
-builder.Services.AddSingleton<ShiftService>();
 builder.Services.AddSingleton<IcsExportService>();
 builder.Services.AddSingleton<PdfExportService>();
 builder.Services.AddSingleton<ITransportApiService, TransportApiService>();
