@@ -9,6 +9,7 @@ namespace ShiftScheduler.Services.Tests;
 public class TransportServiceTests
 {
     private readonly Mock<ITransportApiService> _transportServiceMock;
+    private readonly Mock<IConfigurationService> _configurationServiceMock;
     private readonly IMemoryCache _memoryCache;
     private readonly TransportService _transportService;
     private readonly TransportConfiguration _config;
@@ -16,6 +17,7 @@ public class TransportServiceTests
     public TransportServiceTests()
     {
         _transportServiceMock = new Mock<ITransportApiService>();
+        _configurationServiceMock = new Mock<IConfigurationService>();
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
         
         _config = new TransportConfiguration
@@ -30,7 +32,11 @@ public class TransportServiceTests
             CacheDurationDays = 1
         };
         
-        _transportService = new TransportService(_transportServiceMock.Object, _config, _memoryCache);
+        _configurationServiceMock
+            .Setup(x => x.GetTransportConfiguration())
+            .Returns(_config);
+        
+        _transportService = new TransportService(_transportServiceMock.Object, _configurationServiceMock.Object, _memoryCache);
     }
 
     [Fact]

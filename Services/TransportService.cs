@@ -3,15 +3,16 @@ using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
 {
-    public class TransportService(ITransportApiService transportService, TransportConfiguration config, IMemoryCache cache) : ITransportService
+    public class TransportService(ITransportApiService transportService, IConfigurationService configurationService, IMemoryCache cache) : ITransportService
     {
         public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime)
         {
+            var config = configurationService.GetTransportConfiguration();
             var searchDate = shiftStartTime.ToString("yyyy-MM-dd");
             var searchTime = shiftStartTime.AddMinutes(config.MaxLateArrivalMinutes).ToString("HH:mm");
 
             // Generate cache key based on request parameters
-            var cacheKey = GenerateCacheKey(searchDate, searchTime);
+            var cacheKey = GenerateCacheKey(config, searchDate, searchTime);
             
             // Try to get from cache first
             if (cache.TryGetValue(cacheKey, out TransportConnection? cachedConnection) && cachedConnection != null)
@@ -35,7 +36,7 @@ namespace ShiftScheduler.Services
             return connection;
         }
 
-        private string GenerateCacheKey(string searchDate, string searchTime)
+        private string GenerateCacheKey(TransportConfiguration config, string searchDate, string searchTime)
         {
             return $"transport_{config.StartStation}_{config.EndStation}_{searchDate}_{searchTime}";
         }

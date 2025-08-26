@@ -1,0 +1,338 @@
+@using ShiftScheduler.Shared
+@using System.Text.Json
+@inject HttpClient HttpClient
+@inject IJSRuntime JSRuntime
+
+<div class="modal @(IsVisible ? "show" : "")" style="display: @(IsVisible ? "block" : "none")" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuration</h5>
+                <button type="button" class="btn-close" @onclick="Close" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if (_isLoading)
+                {
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Loading configuration...</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary" @onclick="ExportConfiguration">Export Configuration</button>
+                                <button class="btn btn-outline-secondary" @onclick="() => _showImportSection = !_showImportSection">
+                                    @(_showImportSection ? "Hide Import" : "Import Configuration")
+                                </button>
+                            </div>
+                        </div>
+                        
+                        @if (_showImportSection)
+                        {
+                            <div class="col-12 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Import Configuration</h6>
+                                        <div class="mb-3">
+                                            <label for="configFile" class="form-label">Select configuration file:</label>
+                                            <input type="file" class="form-control" id="configFile" accept=".json" @ref="_fileInput" />
+                                        </div>
+                                        <button class="btn btn-primary" @onclick="ImportConfiguration">Import</button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="row">
+                        <!-- Transport Configuration -->
+                        <div class="col-md-6">
+                            <h6>Transport Configuration</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Start Station</label>
+                                <input type="text" class="form-control" @bind="_config.Transport.StartStation" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">End Station</label>
+                                <input type="text" class="form-control" @bind="_config.Transport.EndStation" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">API Base URL</label>
+                                <input type="text" class="form-control" @bind="_config.Transport.ApiBaseUrl" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Safety Buffer (minutes)</label>
+                                <input type="number" class="form-control" @bind="_config.Transport.SafetyBufferMinutes" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Min Break (minutes)</label>
+                                <input type="number" class="form-control" @bind="_config.Transport.MinBreakMinutes" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Max Early Arrival (minutes)</label>
+                                <input type="number" class="form-control" @bind="_config.Transport.MaxEarlyArrivalMinutes" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Max Late Arrival (minutes)</label>
+                                <input type="number" class="form-control" @bind="_config.Transport.MaxLateArrivalMinutes" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Cache Duration (days)</label>
+                                <input type="number" class="form-control" @bind="_config.Transport.CacheDurationDays" />
+                            </div>
+                        </div>
+
+                        <!-- Shift Configuration -->
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6>Shift Configuration</h6>
+                                <button class="btn btn-sm btn-success" @onclick="AddShift">Add Shift</button>
+                            </div>
+                            
+                            @for (int i = 0; i < _config.Shifts.Count; i++)
+                            {
+                                var index = i; // Capture for closure
+                                <div class="card mb-2">
+                                    <div class="card-body p-2">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="row g-2">
+                                                    <div class="col-6">
+                                                        <label class="form-label">Name</label>
+                                                        <input type="text" class="form-control form-control-sm" @bind="_config.Shifts[index].Name" />
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label class="form-label">Icon</label>
+                                                        <input type="text" class="form-control form-control-sm" @bind="_config.Shifts[index].Icon" />
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label class="form-label">Morning Time</label>
+                                                        <input type="text" class="form-control form-control-sm" @bind="_config.Shifts[index].MorningTime" placeholder="HH:mm-HH:mm" />
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <label class="form-label">Afternoon Time</label>
+                                                        <input type="text" class="form-control form-control-sm" @bind="_config.Shifts[index].AfternoonTime" placeholder="HH:mm-HH:mm" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button class="btn btn-sm btn-danger ms-2" @onclick="() => RemoveShift(index)">
+                                                ❌
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @_errorMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(_successMessage))
+                    {
+                        <div class="alert alert-success" role="alert">
+                            @_successMessage
+                        </div>
+                    }
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="Close">Cancel</button>
+                <button type="button" class="btn btn-primary" @onclick="Save" disabled="@_isLoading">
+                    @if (_isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (IsVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+<style>
+    .modal {
+        z-index: 1055;
+    }
+    .modal-backdrop {
+        z-index: 1050;
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnConfigurationChanged { get; set; }
+
+    private ApplicationConfiguration _config = new();
+    private bool _isLoading = false;
+    private bool _isSaving = false;
+    private bool _showImportSection = false;
+    private string _errorMessage = string.Empty;
+    private string _successMessage = string.Empty;
+    private ElementReference _fileInput;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible && (_config.Shifts.Count == 0 || _config.Transport.StartStation == string.Empty))
+        {
+            await LoadConfiguration();
+        }
+    }
+
+    private async Task LoadConfiguration()
+    {
+        _isLoading = true;
+        _errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var response = await HttpClient.GetAsync("api/configuration");
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                _config = JsonSerializer.Deserialize<ApplicationConfiguration>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new ApplicationConfiguration();
+            }
+            else
+            {
+                _errorMessage = "Failed to load configuration";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error loading configuration: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Save()
+    {
+        _isSaving = true;
+        _errorMessage = string.Empty;
+        _successMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var response = await HttpClient.PutAsJsonAsync("api/configuration", _config);
+            if (response.IsSuccessStatusCode)
+            {
+                _successMessage = "Configuration saved successfully!";
+                await OnConfigurationChanged.InvokeAsync();
+                await Task.Delay(1000); // Show success message briefly
+                await Close();
+            }
+            else
+            {
+                _errorMessage = "Failed to save configuration";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error saving configuration: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportConfiguration()
+    {
+        try
+        {
+            var response = await HttpClient.GetAsync("api/configuration/export");
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                var base64 = Convert.ToBase64String(bytes);
+                await JSRuntime.InvokeVoidAsync("downloadFile", "ShiftScheduler-Configuration.json", "application/json", base64);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error exporting configuration: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private async Task ImportConfiguration()
+    {
+        try
+        {
+            var result = await JSRuntime.InvokeAsync<string>("readFileAsText", _fileInput);
+            if (!string.IsNullOrEmpty(result))
+            {
+                var request = new { JsonContent = result };
+                var response = await HttpClient.PostAsJsonAsync("api/configuration/import", request);
+                if (response.IsSuccessStatusCode)
+                {
+                    await LoadConfiguration();
+                    _successMessage = "Configuration imported successfully!";
+                    _showImportSection = false;
+                }
+                else
+                {
+                    _errorMessage = "Failed to import configuration";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error importing configuration: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    private void AddShift()
+    {
+        _config.Shifts.Add(new Shift
+        {
+            Name = "New Shift",
+            Icon = "⭐",
+            MorningTime = "",
+            AfternoonTime = ""
+        });
+        StateHasChanged();
+    }
+
+    private void RemoveShift(int index)
+    {
+        if (index >= 0 && index < _config.Shifts.Count)
+        {
+            _config.Shifts.RemoveAt(index);
+            StateHasChanged();
+        }
+    }
+
+    private async Task Close()
+    {
+        _errorMessage = string.Empty;
+        _successMessage = string.Empty;
+        _showImportSection = false;
+        await OnClose.InvokeAsync();
+    }
+}

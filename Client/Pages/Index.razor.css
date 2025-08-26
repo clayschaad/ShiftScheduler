@@ -127,6 +127,24 @@
     border-color: #FF69B4;
 }
 
+/* Configuration button */
+.btn.config-btn {
+    margin: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #DDA0DD; /* Light purple/plum */
+    color: #333;
+    border: 2px solid #DA70D6; /* Slightly darker purple border */
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.btn.config-btn:hover {
+    background-color: #DA70D6;
+    border-color: #BA55D3;
+}
+
 /* Reset section - separate from export buttons */
 .reset-section {
     margin: 30px 0 20px 0;
