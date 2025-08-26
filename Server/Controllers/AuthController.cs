@@ -56,13 +56,21 @@ namespace ShiftScheduler.Server.Controllers
         }
 
         [HttpGet("user")]
-        [Authorize]
         public IActionResult GetUser()
         {
-            var emailClaim = User.FindFirst(ClaimTypes.Email) ??
-                           User.FindFirst("email");
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var emailClaim = User.FindFirst(ClaimTypes.Email) ??
+                               User.FindFirst("email");
+                
+                // Verify the user is in the authorized emails list
+                if (emailClaim?.Value != null && _authorizedEmails.Contains(emailClaim.Value))
+                {
+                    return Ok(new { Email = emailClaim.Value, IsAuthenticated = true });
+                }
+            }
             
-            return Ok(new { Email = emailClaim?.Value, IsAuthenticated = true });
+            return Ok(new { Email = (string?)null, IsAuthenticated = false });
         }
     }
 }
