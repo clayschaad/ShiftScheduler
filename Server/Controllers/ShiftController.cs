@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShiftScheduler.Services;
 using ShiftScheduler.Shared;
@@ -6,6 +7,7 @@ namespace ShiftScheduler.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "AllowedEmails")]
     public class ShiftController : ControllerBase
     {
         private readonly ShiftService _shiftService;

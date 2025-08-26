@@ -1,0 +1,19 @@
+.auth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 20px;
+}
+
+.user-info {
+    font-weight: 500;
+    color: #495057;
+}
+
+.logout-btn {
+    padding: 5px 15px;
+    font-size: 14px;
+}
