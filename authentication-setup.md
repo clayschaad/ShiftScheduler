@@ -10,8 +10,8 @@ The ShiftScheduler application now includes Google OAuth authentication with con
 2. Create a new project or select an existing one
 3. Enable the Google+ API
 4. Go to "Credentials" and create OAuth 2.0 Client IDs
-5. Set the authorized redirect URI to: `http://localhost:5000/api/auth/callback` (for development)
-6. For production, use your domain: `https://yourdomain.com/api/auth/callback`
+5. Set the authorized redirect URI to: `http://localhost:5000/signin-google` (for development)
+6. For production, use your domain: `https://yourdomain.com/signin-google`
 
 ### 2. Configure Application
 Edit `Server/appsettings.json` and update the authentication section:
