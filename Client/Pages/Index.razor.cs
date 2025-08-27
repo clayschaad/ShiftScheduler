@@ -20,6 +20,8 @@ namespace ShiftScheduler.Client.Pages
         private int EditYear { get; set; }
         private bool _isLoadingTransport = false;
         private bool _isLoadingInitial = false;
+        private string _errorMessage = string.Empty;
+        private string _successMessage = string.Empty;
 
         private string CurrentMonthYear => new DateTime(EditYear, EditMonth, 1).ToString("MMMM yyyy");
 
@@ -98,21 +100,67 @@ namespace ShiftScheduler.Client.Pages
 
         private async Task ExportToIcs()
         {
-            var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
-            var response = await HttpClient.PostAsJsonAsync("api/shift/export_ics", shiftsWithTransportList);
-            var bytes = await response.Content.ReadAsByteArrayAsync();
-            var base64 = Convert.ToBase64String(bytes);
-            var fileUrl = $"data:text/calendar;base64,{base64}";
-            NavigationManager.NavigateTo(fileUrl, true);
+            try
+            {
+                _errorMessage = string.Empty;
+                _successMessage = string.Empty;
+                StateHasChanged();
+
+                var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
+                var response = await HttpClient.PostAsJsonAsync("api/shift/export_ics", shiftsWithTransportList);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync();
+                    var base64 = Convert.ToBase64String(bytes);
+                    var fileUrl = $"data:text/calendar;base64,{base64}";
+                    NavigationManager.NavigateTo(fileUrl, true);
+                    _successMessage = "ICS file exported successfully!";
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _errorMessage = $"Failed to export ICS file: {response.StatusCode}. {errorContent}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"Error exporting ICS file: {ex.Message}";
+            }
+            
+            StateHasChanged();
         }
 
         private async Task ExportToPdf()
         {
-            var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
-            var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf", shiftsWithTransportList);
-            var bytes = await response.Content.ReadAsByteArrayAsync();
-            var base64 = Convert.ToBase64String(bytes);
-            await JSRuntime.InvokeVoidAsync("downloadFile", $"Schedule {EditYear}-{EditMonth:D2}.pdf", "application/pdf", base64);
+            try
+            {
+                _errorMessage = string.Empty;
+                _successMessage = string.Empty;
+                StateHasChanged();
+
+                var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
+                var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf", shiftsWithTransportList);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync();
+                    var base64 = Convert.ToBase64String(bytes);
+                    await JSRuntime.InvokeVoidAsync("downloadFile", $"Schedule {EditYear}-{EditMonth:D2}.pdf", "application/pdf", base64);
+                    _successMessage = "PDF file exported successfully!";
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _errorMessage = $"Failed to export PDF file: {response.StatusCode}. {errorContent}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"Error exporting PDF file: {ex.Message}";
+            }
+            
+            StateHasChanged();
         }
 
         private async Task SaveScheduleToStorage()

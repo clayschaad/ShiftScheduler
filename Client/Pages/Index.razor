@@ -10,6 +10,22 @@
 
 <h3>Shift Scheduler - @CurrentMonthYear</h3>
 
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @_errorMessage
+        <button type="button" class="btn-close" @onclick="() => _errorMessage = string.Empty"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(_successMessage))
+{
+    <div class="alert alert-success" role="alert">
+        @_successMessage
+        <button type="button" class="btn-close" @onclick="() => _successMessage = string.Empty"></button>
+    </div>
+}
+
 @if (_isLoadingInitial)
 {
     <div class="loading-overlay">
