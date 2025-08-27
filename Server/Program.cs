@@ -35,12 +35,36 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
 })
-.AddCookie()
+.AddCookie(options =>
+{
+    options.LoginPath = "/api/auth/login";
+    options.LogoutPath = "/api/auth/logout";
+    options.AccessDeniedPath = "/";
+    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+    options.SlidingExpiration = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+})
 .AddGoogle(googleOptions =>
 {
     googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    googleOptions.CallbackPath = "/api/auth/callback";
+    googleOptions.CallbackPath = "/signin-google";
+    googleOptions.SaveTokens = true;
+    googleOptions.Events.OnTicketReceived = async context =>
+    {
+        var emailClaim = context.Principal?.FindFirst(ClaimTypes.Email) ??
+                        context.Principal?.FindFirst("email");
+        
+        if (emailClaim?.Value == null || !authorizedEmails.Contains(emailClaim.Value))
+        {
+            context.Fail("Email not authorized");
+            context.Response.Redirect("/?error=unauthorized");
+            return;
+        }
+        
+        await Task.CompletedTask;
+    };
 });
 
 // Configure authorization policy for allowed emails

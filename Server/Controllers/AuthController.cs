@@ -23,33 +23,8 @@ namespace ShiftScheduler.Server.Controllers
         {
             return Challenge(new AuthenticationProperties
             {
-                RedirectUri = "/api/auth/callback"
+                RedirectUri = "/"
             }, GoogleDefaults.AuthenticationScheme);
-        }
-
-        [HttpGet("callback")]
-        public async Task<IActionResult> Callback()
-        {
-            // Explicitly specify the Google authentication scheme for the callback
-            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
-            if (!result.Succeeded || result.Principal == null)
-            {
-                return Redirect("/?error=auth_failed");
-            }
-
-            var emailClaim = result.Principal.FindFirst(ClaimTypes.Email) ??
-                           result.Principal.FindFirst("email");
-            
-            if (emailClaim?.Value == null || !_authorizedEmails.Contains(emailClaim.Value))
-            {
-                await HttpContext.SignOutAsync();
-                return Redirect("/?error=unauthorized");
-            }
-
-            // Sign in with the cookie scheme after successful Google authentication
-            await HttpContext.SignInAsync(result.Principal);
-
-            return Redirect("/");
         }
 
         [HttpPost("logout")]
