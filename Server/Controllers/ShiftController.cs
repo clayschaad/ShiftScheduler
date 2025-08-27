@@ -7,7 +7,7 @@ namespace ShiftScheduler.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    // [Authorize(Policy = "AllowedEmails")] // Temporarily disabled for testing
+    [Authorize(Policy = "AllowedEmails")]
     public class ShiftController : ControllerBase
     {
         private readonly IcsExportService _icsService;

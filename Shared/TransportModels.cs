@@ -17,7 +17,7 @@ namespace ShiftScheduler.Shared
         public string DepartureTime { get; set; } = string.Empty;
         public string ArrivalTime { get; set; } = string.Empty;
         public string Duration { get; set; } = string.Empty;
-        public string Platform { get; set; } = string.Empty;
+        public string? Platform { get; set; } = string.Empty;
         public List<TransportSection> Sections { get; set; } = new();
     }
 
@@ -38,9 +38,9 @@ namespace ShiftScheduler.Shared
     public class TransportCheckpoint
     {
         public TransportStation? Station { get; set; }
-        public string Departure { get; set; } = string.Empty;
-        public string Arrival { get; set; } = string.Empty;
-        public string Platform { get; set; } = string.Empty;
+        public string? Departure { get; set; } = string.Empty;
+        public string? Arrival { get; set; } = string.Empty;
+        public string? Platform { get; set; } = string.Empty;
     }
 
     public class TransportStation
