@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,20 +30,24 @@ namespace ShiftScheduler.Server.Controllers
         [HttpGet("callback")]
         public async Task<IActionResult> Callback()
         {
-            var result = await HttpContext.AuthenticateAsync();
-            if (!result.Succeeded)
+            // Explicitly specify the Google authentication scheme for the callback
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
+            if (!result.Succeeded || result.Principal == null)
             {
                 return Redirect("/?error=auth_failed");
             }
 
-            var emailClaim = result.Principal?.FindFirst(ClaimTypes.Email) ??
-                           result.Principal?.FindFirst("email");
+            var emailClaim = result.Principal.FindFirst(ClaimTypes.Email) ??
+                           result.Principal.FindFirst("email");
             
             if (emailClaim?.Value == null || !_authorizedEmails.Contains(emailClaim.Value))
             {
                 await HttpContext.SignOutAsync();
                 return Redirect("/?error=unauthorized");
             }
+
+            // Sign in with the cookie scheme after successful Google authentication
+            await HttpContext.SignInAsync(result.Principal);
 
             return Redirect("/");
         }
