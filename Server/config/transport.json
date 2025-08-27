@@ -1,0 +1,10 @@
+{
+  "StartStation": "Modified Station",
+  "EndStation": "Modified End",
+  "ApiBaseUrl": "http://modified.com/v1",
+  "SafetyBufferMinutes": 45,
+  "MinBreakMinutes": 90,
+  "MaxEarlyArrivalMinutes": 90,
+  "MaxLateArrivalMinutes": 30,
+  "CacheDurationDays": 2
+}

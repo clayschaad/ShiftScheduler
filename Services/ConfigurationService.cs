@@ -17,10 +17,27 @@ namespace ShiftScheduler.Services
     {
         private ApplicationConfiguration _configuration;
         private readonly object _lock = new object();
+        private readonly string _configDirectory;
+        private readonly string _shiftsFilePath;
+        private readonly string _transportFilePath;
 
         public ConfigurationService(ApplicationConfiguration initialConfiguration)
         {
-            _configuration = initialConfiguration;
+            _configDirectory = Path.Combine(Directory.GetCurrentDirectory(), "config");
+            _shiftsFilePath = Path.Combine(_configDirectory, "shifts.json");
+            _transportFilePath = Path.Combine(_configDirectory, "transport.json");
+            
+            // Ensure config directory exists
+            Directory.CreateDirectory(_configDirectory);
+            
+            // Load configuration from external files if they exist, otherwise use provided configuration
+            _configuration = LoadConfigurationFromFiles(initialConfiguration);
+            
+            // If no external files existed, save the initial configuration to create them
+            if (!File.Exists(_shiftsFilePath) || !File.Exists(_transportFilePath))
+            {
+                SaveConfigurationToFiles(_configuration);
+            }
         }
 
         public ApplicationConfiguration GetConfiguration()
@@ -76,6 +93,9 @@ namespace ShiftScheduler.Services
                         AfternoonTime = s.AfternoonTime
                     }).ToList()
                 };
+                
+                // Persist changes to external files
+                SaveConfigurationToFiles(_configuration);
             }
         }
 
@@ -106,6 +126,77 @@ namespace ShiftScheduler.Services
         public TransportConfiguration GetTransportConfiguration()
         {
             return GetConfiguration().Transport;
+        }
+        
+        private ApplicationConfiguration LoadConfigurationFromFiles(ApplicationConfiguration fallbackConfiguration)
+        {
+            try
+            {
+                var shifts = LoadShiftsFromFile() ?? fallbackConfiguration.Shifts;
+                var transport = LoadTransportFromFile() ?? fallbackConfiguration.Transport;
+                
+                return new ApplicationConfiguration
+                {
+                    Transport = transport,
+                    Shifts = shifts
+                };
+            }
+            catch
+            {
+                // If any error occurs loading from files, use fallback configuration
+                return fallbackConfiguration;
+            }
+        }
+        
+        private List<Shift>? LoadShiftsFromFile()
+        {
+            if (!File.Exists(_shiftsFilePath))
+                return null;
+                
+            try
+            {
+                var json = File.ReadAllText(_shiftsFilePath);
+                return JsonSerializer.Deserialize<List<Shift>>(json);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        
+        private TransportConfiguration? LoadTransportFromFile()
+        {
+            if (!File.Exists(_transportFilePath))
+                return null;
+                
+            try
+            {
+                var json = File.ReadAllText(_transportFilePath);
+                return JsonSerializer.Deserialize<TransportConfiguration>(json);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        
+        private void SaveConfigurationToFiles(ApplicationConfiguration configuration)
+        {
+            try
+            {
+                var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+                
+                var shiftsJson = JsonSerializer.Serialize(configuration.Shifts, jsonOptions);
+                File.WriteAllText(_shiftsFilePath, shiftsJson);
+                
+                var transportJson = JsonSerializer.Serialize(configuration.Transport, jsonOptions);
+                File.WriteAllText(_transportFilePath, transportJson);
+            }
+            catch
+            {
+                // Log error if needed, but don't throw to avoid breaking the application
+                // In a production app, you'd want proper logging here
+            }
         }
     }
 }
