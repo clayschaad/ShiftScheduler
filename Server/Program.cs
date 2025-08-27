@@ -40,6 +40,7 @@ builder.Services.AddAuthentication(options =>
 {
     googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+    googleOptions.CallbackPath = "/api/auth/callback";
 });
 
 // Configure authorization policy for allowed emails
