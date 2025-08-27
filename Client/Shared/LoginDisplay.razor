@@ -24,6 +24,6 @@
 
     private async Task Login()
     {
-        await JSRuntime.InvokeVoidAsync("window.location.href", "/api/auth/login");
+        await JSRuntime.InvokeVoidAsync("eval", "window.location.href = '/api/auth/login'");
     }
 }
