@@ -52,33 +52,11 @@ After making changes, always run through these scenarios:
 4. **Application Startup**: Confirm the app starts without errors and loads the UI
 
 ## Common Tasks
-### Project Structure
-```
-ShiftScheduler.sln          # Main solution file
-├── Client/                 # Blazor WebAssembly frontend
-│   ├── Pages/Index.razor   # Main calendar UI
-│   └── Program.cs          # Client startup
-├── Server/                 # ASP.NET Core host
-│   ├── Program.cs          # Server startup and dependency injection
-│   ├── Controllers/ShiftController.cs  # API endpoints
-│   └── appsettings.json    # Shift configurations
-├── Shared/                 # Shared models
-│   └── Shift.cs            # Shift data model
-└── Services/               # Business logic
-    ├── ShiftService.cs     # Shift data management
-    ├── IcsExportService.cs # Calendar export (uses Ical.Net)
-    └── PdfExportService.cs # PDF export (uses QuestPDF)
-```
 
 ### Key Configuration Files
 - `Server/appsettings.json`: Contains shift definitions with Name, Icon, MorningTime, AfternoonTime
 - `Server/Properties/launchSettings.json`: Development server configuration (port 5000)
 - All `.csproj` files target .NET 9.0
-
-### Dependencies
-- **Client**: Microsoft.AspNetCore.Components.WebAssembly
-- **Server**: Microsoft.AspNetCore.Components.WebAssembly.Server
-- **Services**: QuestPDF (PDF generation), Ical.Net (calendar export)
 
 ### Timing Expectations
 - **NEVER CANCEL**: All build operations may take time but must complete
@@ -87,19 +65,118 @@ ShiftScheduler.sln          # Main solution file
 - `dotnet run` startup: 15 seconds until server ready + 10 seconds for WebAssembly load
 - Application response: Immediate once loaded
 
-### Common Development Workflows
-1. **Making UI Changes**: Edit `Client/Pages/Index.razor` or related files, then `dotnet run` in Server directory
-2. **Adding New Shifts**: Update `Server/appsettings.json` "Shifts" section
-3. **API Changes**: Modify `Server/Controllers/ShiftController.cs`
-4. **Business Logic**: Update files in `Services/` directory
-5. **Data Models**: Modify `Shared/Shift.cs`
-
 ### Troubleshooting
 - If build fails with "does not support targeting .NET 9.0": Install .NET 9.0 SDK as described above
 - If application won't start: Check that no other service is using port 5000
 - If WebAssembly doesn't load: Wait longer, check browser console for JavaScript errors
 - Export issues: Verify shift configurations in appsettings.json have proper time formats for ICS export
 
-## Common Instructions
+## C# Coding Standards
+- Should use params collections (e.g., ```csharp
+void Foo(params IReadOnlyList<string> values) => // actual implementation here.```)
+- Using Lock instead of new object() makes the intent of the code clear and there also might be performance benefits due to special casing of the new type in the .NET runtime.
+- Should use Primary constructors
+- Should use collection expressions & spread operator
+- Don't use ref readonly parameters
+
+### Code Quality
+- Write unit tests for new features and bug fixes whenever possible and it provides value
+- Treat warnings as errors in builds to prevent minor issues from accumulating (`<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`)
+
+### Namespace Guidelines
+- Use consistent namespace structure following folder hierarchy
+- Avoid deep nesting - keep namespaces reasonable length
+- Group related functionality in same namespace
+
+### API Controllers
+- Use proper route attributes with versioning (e.g., `api/v1/`, `api/v2/`)
+- Follow kebab-case for URLs where required, suppress warnings where legacy URLs exist
+- Always include proper HTTP status code responses with SwaggerResponse attributes
+- Validate input parameters and return appropriate error responses
+
+### REST API Design
+- Use HTTP verbs correctly (GET for queries, POST for commands, PUT for updates, DELETE for removal)
+- Return appropriate HTTP status codes (200, 201, 400, 404, 409, 500)
+- Use consistent error response format
+- Support pagination for collection endpoints
+- Include resource identifiers in URLs: `/api/v1/shifts/{shiftId}`
+- Use plural nouns for resource collections: `/api/v1/shifts`
+
+### Command API Design
+- Commands are named imperative: `CreateShift`, `UpdateShift`
+- Commands have no Pre-/Suffix "Command"
+
+### Async Guidelines
+- Always use `async`/`await` for I/O operations
+- Include `CancellationToken` as last parameter in async methods
+- Don't block on async code with `.Result` or `.Wait()` - if needed, use `SynchronousWaiter.WaitFor()`
+- Name async methods with `Async` suffix
+
+### Collections Guidelines
+- Do not use immutable collections and try to remove them from the codebase.
+- Use `IReadOnlySet<T>` and `IReadOnlyDictionary<T>` backed by mutable `HashSet<T>` and `Dictionary<T>` for very short lived collections (like most business logic)
+- Prefer `List<T>` over `IList<T>` for mutable collections when concrete type is needed
+- Use `HashSet<T>` for uniqueness, `List<T>` for ordering
+- Use `FrozenSet<T>, FrozenDictionary<T>, ImmutableArray<T>` for long living data which is read often (e.g. Caches)
+- Initialize collections at declaration when possible
+- Avoid returning null collections - return empty collections instead
+
+### Nullable Handling
+- Use nullable reference types and try to remove #nullable disable from the codebase
+- Use proper null checks and null-coalescing operators
+- Use null-conditional operators where appropriate: `obj?.Property`
+
+### Dependency Injection
+- Use constructor dependency injection
+- Register services with appropriate lifetime (Singleton, Scoped, Transient)
+- Avoid service locator pattern
+
+### API Documentation
+- Document public APIs
+- Include proper Swagger annotations
+- Provide examples in documentation whenever possible
+- Keep documentation up to date with code changes
+
+### Error Handling
+- Include meaningful error messages
+- Log exceptions with appropriate severity levels
+- Don't expose internal implementation details in error messages
+
+### File Organization
+- Use file-scoped namespaces
+- Keep one class per file
+
+### Performance
+- Avoid unnecessary allocations
+- Avoid calling methods that access APIs or databases inside loops
+
+## Domain-Specific Patterns
+
+### ID Types and Records
+- Replace complex Id types with primitive types wherever possible
+- Use readonly record structs for immutable data
+
+### Service Interfaces
+- Add interfaces to services only when absolutely necessary. Try to remove interfaces with a single implementation.
+- Prefix service interfaces with `I`: `IMyService`
+- Use specific return types rather than generic objects
+
+### Equality Implementation
+- Override `Equals` and `GetHashCode` consistently
+- Implement `IEquatable<T>` for value types and data objects - but not for records
+- Use proper null checks in equality methods
+- Consider `ReferenceEquals` optimization for reference types
+
+### Architecture
+- Proper separation of concerns
+- Following established patterns in the codebase
+- Do not use any sort of "aggregate root" concept, instead use simple entities and value objects.
+
+### Testing
+- Ensure testability through proper dependency injection
+- Mock external dependencies
+- Test both success and error scenarios
+
+### Common Instructions
 - Don't write code comments
 - Use var instead of explicit type, ex. var x = 4;
