@@ -1,0 +1,32 @@
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<div class="auth-header">
+    <div class="user-info">
+        Welcome, @Email
+    </div>
+    <button class="btn btn-outline-danger logout-btn" @onclick="Logout">
+        Sign Out
+    </button>
+</div>
+
+@code {
+    [Parameter] public string Email { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnLogout { get; set; }
+
+    private async Task Logout()
+    {
+        try
+        {
+            await Http.PostAsync("api/auth/logout", null);
+        }
+        catch (Exception)
+        {
+            // Ignore errors, just redirect
+        }
+        finally
+        {
+            await JSRuntime.InvokeVoidAsync("window.location.reload");
+        }
+    }
+}

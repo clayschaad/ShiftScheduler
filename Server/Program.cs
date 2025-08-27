@@ -1,3 +1,7 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using ShiftScheduler.Services;
 using ShiftScheduler.Shared;
 
@@ -6,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Load configurations from appsettings.json
 var shifts = builder.Configuration.GetSection("Shifts").Get<List<Shift>>() ?? new();
 var transportConfig = builder.Configuration.GetSection("Transport").Get<TransportConfiguration>() ?? new();
+var authorizedEmails = builder.Configuration.GetSection("Authentication:AuthorizedEmails").Get<List<string>>() ?? new();
 
 // Create application configuration
 var appConfiguration = new ApplicationConfiguration
@@ -15,6 +20,7 @@ var appConfiguration = new ApplicationConfiguration
 };
 
 // Register services
+builder.Services.AddSingleton(authorizedEmails);
 builder.Services.AddSingleton<IConfigurationService>(new ConfigurationService(appConfiguration));
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<TransportApiService>();
@@ -22,6 +28,60 @@ builder.Services.AddSingleton<IcsExportService>();
 builder.Services.AddSingleton<PdfExportService>();
 builder.Services.AddSingleton<ITransportApiService, TransportApiService>();
 builder.Services.AddSingleton<ITransportService, TransportService>();
+
+// Configure authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.LoginPath = "/api/auth/login";
+    options.LogoutPath = "/api/auth/logout";
+    options.AccessDeniedPath = "/";
+    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+    options.SlidingExpiration = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+})
+.AddGoogle(googleOptions =>
+{
+    googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
+    googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+    googleOptions.CallbackPath = "/signin-google";
+    googleOptions.SaveTokens = true;
+    googleOptions.Events.OnTicketReceived = async context =>
+    {
+        var emailClaim = context.Principal?.FindFirst(ClaimTypes.Email) ??
+                        context.Principal?.FindFirst("email");
+        
+        if (emailClaim?.Value == null || !authorizedEmails.Contains(emailClaim.Value))
+        {
+            context.Fail("Email not authorized");
+            context.Response.Redirect("/?error=unauthorized");
+            return;
+        }
+        
+        await Task.CompletedTask;
+    };
+});
+
+// Configure authorization policy for allowed emails
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AllowedEmails", policy =>
+        policy.RequireAssertion(context =>
+        {
+            var emailClaim = context.User.FindFirst(ClaimTypes.Email) ??
+                           context.User.FindFirst("email");
+            if (emailClaim?.Value != null)
+            {
+                return authorizedEmails.Contains(emailClaim.Value);
+            }
+            return false;
+        }));
+});
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
@@ -46,6 +106,9 @@ app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 
 app.MapRazorPages();

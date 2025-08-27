@@ -1,0 +1,29 @@
+@inject IJSRuntime JSRuntime
+
+<div class="login-container">
+    <div class="login-card">
+        <h2>Welcome to Shift Scheduler</h2>
+        <p>Please sign in with your Google account to access the application.</p>
+        
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">
+                @ErrorMessage
+            </div>
+        }
+        
+        <button class="btn btn-primary login-btn" @onclick="Login">
+            <span class="google-icon">🔐</span>
+            Sign in with Google
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? ErrorMessage { get; set; }
+
+    private async Task Login()
+    {
+        await JSRuntime.InvokeVoidAsync("eval", "window.location.href = '/api/auth/login'");
+    }
+}

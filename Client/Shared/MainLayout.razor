@@ -1,9 +1,33 @@
 ﻿@inherits LayoutComponentBase
+@inject IJSRuntime JSRuntime
 
 <div class="page">
     <main>
-        <article class="content px-4">
-            @Body
-        </article>
+        <CascadingAuthenticationState>
+            <AuthorizeView>
+                <Authorized>
+                    <AuthHeader Email="@GetEmailFromContext(context)" />
+                    <article class="content px-4">
+                        @Body
+                    </article>
+                </Authorized>
+                <NotAuthorized>
+                    <LoginDisplay ErrorMessage="@GetErrorMessage()" />
+                </NotAuthorized>
+            </AuthorizeView>
+        </CascadingAuthenticationState>
     </main>
 </div>
+
+@code {
+    private string GetEmailFromContext(AuthenticationState authState)
+    {
+        return authState.User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Unknown";
+    }
+    
+    private string GetErrorMessage()
+    {
+        // Get error message from URL query parameters
+        return "";  // We'll handle this through JS if needed
+    }
+}
