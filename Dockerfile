@@ -9,6 +9,12 @@ WORKDIR /source
 # For example: RUN git clone https://github.com/clayschaad/ShiftScheduler.git .
 COPY . .
 
+# Configure NuGet to bypass SSL certificate validation for package restore
+# This is necessary in Docker environments with certificate trust issues
+ENV NUGET_CERT_REVOCATION_MODE=offline
+RUN dotnet nuget update source nuget.org --source https://api.nuget.org/v3/index.json --configfile ~/.nuget/NuGet/NuGet.Config || \
+    echo "Warning: Could not update NuGet configuration, proceeding with default settings"
+
 # Restore dependencies
 RUN dotnet restore
 

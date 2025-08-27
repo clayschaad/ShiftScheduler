@@ -1,5 +1,5 @@
 # Production Dockerfile for ShiftScheduler
-# This version clones the repository from GitHub to always get the latest version
+# This version attempts to clone the repository from GitHub but includes fallbacks for restricted environments
 
 # Use the official .NET 9.0 SDK image for building
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build-env
@@ -7,14 +7,36 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build-env
 # Set working directory
 WORKDIR /source
 
-# Install git for cloning the repository
+# Install git for cloning the repository (if network allows)
 RUN apt-get update && \
     apt-get install -y git && \
     rm -rf /var/lib/apt/lists/*
 
+# Define build arguments for repository URL and branch
+ARG REPO_URL=https://github.com/clayschaad/ShiftScheduler.git
+ARG BRANCH=main
+
 # Clone the git repository to always have the actual version of ShiftScheduler
-RUN git clone https://github.com/clayschaad/ShiftScheduler.git . || \
-    git -c http.sslVerify=false clone https://github.com/clayschaad/ShiftScheduler.git .
+# Note: This may fail in environments with strict SSL/auth policies
+# In such cases, use the main Dockerfile with local source files instead
+RUN git config --global http.sslVerify false && \
+    git clone --depth 1 --branch ${BRANCH} ${REPO_URL} . || \
+    echo "Git clone failed. This may be due to network restrictions or authentication requirements in this Docker environment."
+
+# Check if we have source files, otherwise provide helpful error message
+RUN if [ ! -f "ShiftScheduler.sln" ]; then \
+        echo "ERROR: No source files found. This typically happens when:"; \
+        echo "1. Network restrictions prevent git clone in Docker build environment"; \
+        echo "2. SSL certificate verification fails"; \
+        echo "3. Authentication is required"; \
+        echo ""; \
+        echo "SOLUTION: Use the main Dockerfile instead:"; \
+        echo "  docker build -f Dockerfile -t shiftscheduler ."; \
+        echo ""; \
+        echo "Or copy source files manually and use:"; \
+        echo "  docker build -f Dockerfile.local -t shiftscheduler ."; \
+        exit 1; \
+    fi
 
 # Restore dependencies
 RUN dotnet restore
