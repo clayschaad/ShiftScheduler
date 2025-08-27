@@ -1,10 +1,10 @@
 {
-  "StartStation": "Modified Station",
-  "EndStation": "Modified End",
-  "ApiBaseUrl": "http://modified.com/v1",
-  "SafetyBufferMinutes": 45,
-  "MinBreakMinutes": 90,
-  "MaxEarlyArrivalMinutes": 90,
-  "MaxLateArrivalMinutes": 30,
-  "CacheDurationDays": 2
+  "StartStation": "Zurich",
+  "EndStation": "Basel",
+  "ApiBaseUrl": "http://transport.opendata.ch/v1",
+  "SafetyBufferMinutes": 30,
+  "MinBreakMinutes": 60,
+  "MaxEarlyArrivalMinutes": 60,
+  "MaxLateArrivalMinutes": 15,
+  "CacheDurationDays": 1
 }
