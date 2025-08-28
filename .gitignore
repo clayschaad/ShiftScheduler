@@ -59,3 +59,7 @@ nunit-*.xml
 
 # mac files
 .DS_Store
+
+# Configuration files (uncomment to avoid committing development configs)
+config/
+**/config/
