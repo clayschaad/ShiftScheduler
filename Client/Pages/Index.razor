@@ -14,7 +14,7 @@
     </div>
 </div>
 
-<h3>Shift Scheduler - @CurrentMonthYear</h3>
+<h3>Shift Scheduler - @SelectedDate.Title</h3>
 
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
@@ -45,7 +45,7 @@ else
 {
 
 <div class="calendar-grid">
-    @foreach (var day in DaysInMonth)
+    @foreach (var day in SelectedDate.DaysInMonth())
     {
         <div class="day-cell">
             <div class="day-header">

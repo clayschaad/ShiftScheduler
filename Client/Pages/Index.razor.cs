@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
-using System.Text.Json;
 using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Client.Pages
@@ -11,29 +10,24 @@ namespace ShiftScheduler.Client.Pages
         [Inject] private HttpClient HttpClient { get; set; } = default!;
         [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
-
-        private List<DateTime> DaysInMonth { get; set; } = new();
+        
         private List<Shift> Shifts { get; set; } = new();
         private Dictionary<DateTime, string> SelectedSchedule { get; set; } = new();
         private Dictionary<DateTime, ShiftWithTransport> SelectedShiftsWithTransport { get; set; } = new();
-        private int EditMonth { get; set; }
-        private int EditYear { get; set; }
+
         private bool _isCurrentMonth = false;
         private bool _isLoadingTransport = false;
         private bool _isLoadingInitial = false;
+        private bool _showConfigDialog = false;
         private string _errorMessage = string.Empty;
         private string _successMessage = string.Empty;
 
-        private string CurrentMonthYear => new DateTime(EditYear, EditMonth, 1).ToString("MMMM yyyy");
+        private MonthAndYear SelectedDate => _isCurrentMonth ? MonthAndYear.Current() : MonthAndYear.Next();
 
         protected override async Task OnInitializedAsync()
         {
             _isLoadingInitial = true;
             
-            (EditMonth, EditYear) = GetNextMonthAndYear();
-
-            UpdateDaysInMonth();
-
             Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
 
             await LoadScheduleFromStorage();
@@ -42,37 +36,16 @@ namespace ShiftScheduler.Client.Pages
             StateHasChanged();
         }
 
-        private void UpdateDaysInMonth()
-        {
-            DaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(EditYear, EditMonth))
-                                    .Select(d => new DateTime(EditYear, EditMonth, d))
-                                    .ToList();
-        }
-
-        private (int nextMonth, int year) GetNextMonthAndYear()
-        {
-            var today = DateTime.Today;
-            var nextMonth = today.Month == 12 ? 1 : today.Month + 1;
-            var year = today.Month == 12 ? today.Year + 1 : today.Year;
-            return (nextMonth, year);
-        }
-
         private async Task SelectCurrentMonth()
         {
-            var today = DateTime.Today;
-            EditMonth = today.Month;
-            EditYear = today.Year;
             _isCurrentMonth = true;
-            UpdateDaysInMonth();
             await LoadScheduleFromStorage();
             StateHasChanged();
         }
 
         private async Task SelectNextMonth()
         {
-            (EditMonth, EditYear) = GetNextMonthAndYear();
             _isCurrentMonth = false;
-            UpdateDaysInMonth();
             await LoadScheduleFromStorage();
             StateHasChanged();
         }
@@ -172,7 +145,7 @@ namespace ShiftScheduler.Client.Pages
                 {
                     var bytes = await response.Content.ReadAsByteArrayAsync();
                     var base64 = Convert.ToBase64String(bytes);
-                    await JSRuntime.InvokeVoidAsync("downloadFile", $"Schedule {EditYear}-{EditMonth:D2}.pdf", "application/pdf", base64);
+                    await JSRuntime.InvokeVoidAsync("downloadFile", $"Schedule {SelectedDate.Year}-{SelectedDate.Month:D2}.pdf", "application/pdf", base64);
                     _successMessage = "PDF file exported successfully!";
                 }
                 else
@@ -195,8 +168,8 @@ namespace ShiftScheduler.Client.Pages
             {
                 var request = new
                 {
-                    Year = EditYear,
-                    Month = EditMonth,
+                    Year = SelectedDate.Year,
+                    Month = SelectedDate.Month,
                     Schedule = SelectedSchedule
                 };
                 
@@ -212,7 +185,7 @@ namespace ShiftScheduler.Client.Pages
         {
             try
             {
-                var response = await HttpClient.GetAsync($"api/shift/load_schedule/{EditYear}/{EditMonth}");
+                var response = await HttpClient.GetAsync($"api/shift/load_schedule/{SelectedDate.Year}/{SelectedDate.Month}");
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -281,7 +254,7 @@ namespace ShiftScheduler.Client.Pages
             
             try
             {
-                await HttpClient.DeleteAsync($"api/shift/delete_schedule/{EditYear}/{EditMonth}");
+                await HttpClient.DeleteAsync($"api/shift/delete_schedule/{SelectedDate.Year}/{SelectedDate.Month}");
             }
             catch (Exception)
             {
@@ -290,7 +263,7 @@ namespace ShiftScheduler.Client.Pages
         }
 
         // Helper method to get transport summary for display
-        public string GetTransportSummary(DateTime date)
+        private string GetTransportSummary(DateTime date)
         {
             if (!SelectedShiftsWithTransport.TryGetValue(date, out var shiftWithTransport))
                 return string.Empty;
@@ -309,7 +282,7 @@ namespace ShiftScheduler.Client.Pages
         }
 
         // Helper method to get shift times for display
-        public string GetShiftTimes(DateTime date)
+        private string GetShiftTimes(DateTime date)
         {
             if (!SelectedSchedule.TryGetValue(date, out var shiftName))
                 return string.Empty;
@@ -328,8 +301,6 @@ namespace ShiftScheduler.Client.Pages
                 
             return string.Join(" | ", times);
         }
-
-        private bool _showConfigDialog = false;
 
         private void ShowConfiguration()
         {
