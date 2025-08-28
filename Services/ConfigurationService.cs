@@ -11,6 +11,11 @@ namespace ShiftScheduler.Services
         Task ImportConfigurationAsync(string jsonContent);
         List<Shift> GetShifts();
         TransportConfiguration GetTransportConfiguration();
+        
+        // Schedule persistence methods
+        Task SaveScheduleAsync(int year, int month, Dictionary<DateTime, string> schedule);
+        Task<Dictionary<DateTime, string>> LoadScheduleAsync(int year, int month);
+        Task DeleteScheduleAsync(int year, int month);
     }
 
     public class ConfigurationService : IConfigurationService
@@ -126,6 +131,75 @@ namespace ShiftScheduler.Services
         public TransportConfiguration GetTransportConfiguration()
         {
             return GetConfiguration().Transport;
+        }
+        
+        // Schedule persistence methods
+        public async Task SaveScheduleAsync(int year, int month, Dictionary<DateTime, string> schedule)
+        {
+            try
+            {
+                var scheduleFileName = $"schedule-{year:D4}-{month:D2}.json";
+                var scheduleFilePath = Path.Combine(_configDirectory, scheduleFileName);
+                
+                var serializableSchedule = schedule.ToDictionary(
+                    kvp => kvp.Key.ToString("yyyy-MM-dd"),
+                    kvp => kvp.Value
+                );
+                
+                var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+                var json = JsonSerializer.Serialize(serializableSchedule, jsonOptions);
+                await File.WriteAllTextAsync(scheduleFilePath, json);
+            }
+            catch
+            {
+                // Log error if needed, but don't throw to avoid breaking the application
+            }
+        }
+        
+        public async Task<Dictionary<DateTime, string>> LoadScheduleAsync(int year, int month)
+        {
+            try
+            {
+                var scheduleFileName = $"schedule-{year:D4}-{month:D2}.json";
+                var scheduleFilePath = Path.Combine(_configDirectory, scheduleFileName);
+                
+                if (!File.Exists(scheduleFilePath))
+                    return new Dictionary<DateTime, string>();
+                
+                var json = await File.ReadAllTextAsync(scheduleFilePath);
+                var serializableSchedule = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                
+                if (serializableSchedule == null)
+                    return new Dictionary<DateTime, string>();
+                
+                return serializableSchedule.ToDictionary(
+                    kvp => DateTime.Parse(kvp.Key),
+                    kvp => kvp.Value
+                );
+            }
+            catch
+            {
+                return new Dictionary<DateTime, string>();
+            }
+        }
+        
+        public async Task DeleteScheduleAsync(int year, int month)
+        {
+            try
+            {
+                var scheduleFileName = $"schedule-{year:D4}-{month:D2}.json";
+                var scheduleFilePath = Path.Combine(_configDirectory, scheduleFileName);
+                
+                if (File.Exists(scheduleFilePath))
+                {
+                    File.Delete(scheduleFilePath);
+                }
+                await Task.CompletedTask;
+            }
+            catch
+            {
+                // Log error if needed, but don't throw
+            }
         }
         
         private ApplicationConfiguration LoadConfigurationFromFiles(ApplicationConfiguration fallbackConfiguration)

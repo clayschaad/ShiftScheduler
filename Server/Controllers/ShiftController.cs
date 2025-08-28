@@ -143,11 +143,60 @@ namespace ShiftScheduler.Server.Controllers
             var pdf = _pdfExportService.GenerateMonthlySchedulePdf(shiftsWithTransport);
             return File(pdf, "application/pdf", "schedule.pdf");
         }
+
+        [HttpPost("save_schedule")]
+        public async Task<IActionResult> SaveSchedule([FromBody] SaveScheduleRequest request)
+        {
+            try
+            {
+                await _configurationService.SaveScheduleAsync(request.Year, request.Month, request.Schedule);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error saving schedule: {ex.Message}");
+            }
+        }
+
+        [HttpGet("load_schedule/{year}/{month}")]
+        public async Task<IActionResult> LoadSchedule(int year, int month)
+        {
+            try
+            {
+                var schedule = await _configurationService.LoadScheduleAsync(year, month);
+                return Ok(schedule);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error loading schedule: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("delete_schedule/{year}/{month}")]
+        public async Task<IActionResult> DeleteSchedule(int year, int month)
+        {
+            try
+            {
+                await _configurationService.DeleteScheduleAsync(year, month);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error deleting schedule: {ex.Message}");
+            }
+        }
     }
 
     public class ShiftTransportRequest
     {
         public string ShiftName { get; set; } = string.Empty;
         public DateTime Date { get; set; }
+    }
+
+    public class SaveScheduleRequest
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public Dictionary<DateTime, string> Schedule { get; set; } = new();
     }
 }

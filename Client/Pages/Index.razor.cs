@@ -18,6 +18,7 @@ namespace ShiftScheduler.Client.Pages
         private Dictionary<DateTime, ShiftWithTransport> SelectedShiftsWithTransport { get; set; } = new();
         private int EditMonth { get; set; }
         private int EditYear { get; set; }
+        private bool _isCurrentMonth = false;
         private bool _isLoadingTransport = false;
         private bool _isLoadingInitial = false;
         private string _errorMessage = string.Empty;
@@ -31,9 +32,7 @@ namespace ShiftScheduler.Client.Pages
             
             (EditMonth, EditYear) = GetNextMonthAndYear();
 
-            DaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(EditYear, EditMonth))
-                                    .Select(d => new DateTime(EditYear, EditMonth, d))
-                                    .ToList();
+            UpdateDaysInMonth();
 
             Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
 
@@ -43,12 +42,39 @@ namespace ShiftScheduler.Client.Pages
             StateHasChanged();
         }
 
+        private void UpdateDaysInMonth()
+        {
+            DaysInMonth = Enumerable.Range(1, DateTime.DaysInMonth(EditYear, EditMonth))
+                                    .Select(d => new DateTime(EditYear, EditMonth, d))
+                                    .ToList();
+        }
+
         private (int nextMonth, int year) GetNextMonthAndYear()
         {
             var today = DateTime.Today;
             var nextMonth = today.Month == 12 ? 1 : today.Month + 1;
             var year = today.Month == 12 ? today.Year + 1 : today.Year;
             return (nextMonth, year);
+        }
+
+        private async Task SelectCurrentMonth()
+        {
+            var today = DateTime.Today;
+            EditMonth = today.Month;
+            EditYear = today.Year;
+            _isCurrentMonth = true;
+            UpdateDaysInMonth();
+            await LoadScheduleFromStorage();
+            StateHasChanged();
+        }
+
+        private async Task SelectNextMonth()
+        {
+            (EditMonth, EditYear) = GetNextMonthAndYear();
+            _isCurrentMonth = false;
+            UpdateDaysInMonth();
+            await LoadScheduleFromStorage();
+            StateHasChanged();
         }
 
         private async Task SelectShift(DateTime day, string shiftName)
@@ -167,15 +193,14 @@ namespace ShiftScheduler.Client.Pages
         {
             try
             {
-                var storageKey = $"ShiftSchedule_{EditYear}_{EditMonth:D2}";
+                var request = new
+                {
+                    Year = EditYear,
+                    Month = EditMonth,
+                    Schedule = SelectedSchedule
+                };
                 
-                var serializableSchedule = SelectedSchedule.ToDictionary(
-                    kvp => kvp.Key.ToString("yyyy-MM-dd"),
-                    kvp => kvp.Value
-                );
-                
-                var json = JsonSerializer.Serialize(serializableSchedule);
-                await JSRuntime.InvokeVoidAsync("localStorage.setItem", storageKey, json);
+                await HttpClient.PostAsJsonAsync("api/shift/save_schedule", request);
             }
             catch (Exception)
             {
@@ -187,22 +212,19 @@ namespace ShiftScheduler.Client.Pages
         {
             try
             {
-                var storageKey = $"ShiftSchedule_{EditYear}_{EditMonth:D2}";
-                var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", storageKey);
+                var response = await HttpClient.GetAsync($"api/shift/load_schedule/{EditYear}/{EditMonth}");
                 
-                if (!string.IsNullOrEmpty(json))
+                if (response.IsSuccessStatusCode)
                 {
-                    var serializableSchedule = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-                    if (serializableSchedule != null)
-                    {
-                        SelectedSchedule = serializableSchedule.ToDictionary(
-                            kvp => DateTime.Parse(kvp.Key),
-                            kvp => kvp.Value
-                        );
-                        
-                        // Reload transport data for all selected shifts
-                        await ReloadTransportDataForSchedule();
-                    }
+                    SelectedSchedule = await response.Content.ReadFromJsonAsync<Dictionary<DateTime, string>>() ?? new();
+                    
+                    // Reload transport data for all selected shifts
+                    await ReloadTransportDataForSchedule();
+                }
+                else
+                {
+                    SelectedSchedule = new Dictionary<DateTime, string>();
+                    SelectedShiftsWithTransport = new Dictionary<DateTime, ShiftWithTransport>();
                 }
             }
             catch (Exception)
@@ -259,8 +281,7 @@ namespace ShiftScheduler.Client.Pages
             
             try
             {
-                var storageKey = $"ShiftSchedule_{EditYear}_{EditMonth:D2}";
-                await JSRuntime.InvokeVoidAsync("localStorage.removeItem", storageKey);
+                await HttpClient.DeleteAsync($"api/shift/delete_schedule/{EditYear}/{EditMonth}");
             }
             catch (Exception)
             {
