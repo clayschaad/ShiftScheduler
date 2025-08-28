@@ -61,5 +61,5 @@ nunit-*.xml
 .DS_Store
 
 # Configuration files (uncomment to avoid committing development configs)
-# config/
-# **/config/
+config/
+**/config/
