@@ -6,6 +6,26 @@
     margin-bottom: 1rem;
     flex-wrap: wrap;
     gap: 1rem;
+    /* Make buttons scrollable instead of fixed */
+    position: static;
+    overflow: visible;
+}
+
+/* Mobile top navigation - stack vertically */
+@media (max-width: 768px) {
+    .top-nav-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    
+    .month-selection {
+        justify-content: center;
+    }
+    
+    .action-buttons {
+        justify-content: center;
+    }
 }
 
 /* Month selection buttons */
@@ -75,11 +95,43 @@
 }
 
 /* Calendar container */
+.calendar-container {
+    margin-top: 1rem;
+}
+
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
-    margin-top: 1rem;
+}
+
+/* Desktop calendar grid - week-based layout with 7 columns max */
+.desktop-calendar {
+    grid-template-columns: repeat(7, 1fr);
+}
+
+/* Mobile calendar grid - single column */
+.mobile-calendar {
+    grid-template-columns: 1fr;
+}
+
+/* Show desktop calendar only on larger screens */
+@media (min-width: 769px) {
+    .desktop-calendar {
+        display: grid;
+    }
+    .mobile-calendar {
+        display: none;
+    }
+}
+
+/* Show mobile calendar only on smaller screens */
+@media (max-width: 768px) {
+    .desktop-calendar {
+        display: none;
+    }
+    .mobile-calendar {
+        display: grid;
+    }
 }
 
 /* Each day cell */
@@ -89,6 +141,14 @@
     padding: 1rem;
     background-color: #fff;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Mobile day cell adjustments */
+@media (max-width: 768px) {
+    .day-cell {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
 }
 
 /* Day number */
@@ -102,9 +162,23 @@
 /* Shift buttons container */
 .shifts {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;
     margin-bottom: 0.5rem;
+}
+
+/* Desktop shift buttons - 3 columns */
+@media (min-width: 769px) {
+    .shifts {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Mobile shift buttons - single row */
+@media (max-width: 768px) {
+    .shifts {
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+        gap: 0.25rem;
+    }
 }
 
 /* Individual shift buttons */
@@ -121,6 +195,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Mobile shift button adjustments */
+@media (max-width: 768px) {
+    .shift-button {
+        min-height: 2rem;
+        font-size: 1rem;
+        padding: 0.4rem;
+    }
 }
 
 .shift-button:hover {

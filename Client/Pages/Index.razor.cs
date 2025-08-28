@@ -320,5 +320,35 @@ namespace ShiftScheduler.Client.Pages
             Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
             StateHasChanged();
         }
+
+        // Helper method to group days by week for desktop calendar view
+        // Each week starts with Monday and ends with Sunday (max 7 days per row)
+        private List<List<DateTime>> GetWeeksInMonth()
+        {
+            var days = SelectedDate.DaysInMonth();
+            var weeks = new List<List<DateTime>>();
+            var currentWeek = new List<DateTime>();
+            
+            foreach (var day in days)
+            {
+                // Add the day to current week
+                currentWeek.Add(day);
+                
+                // If it's Sunday or we have 7 days, end the week
+                if (day.DayOfWeek == DayOfWeek.Sunday || currentWeek.Count == 7)
+                {
+                    weeks.Add(currentWeek);
+                    currentWeek = new List<DateTime>();
+                }
+            }
+            
+            // Add any remaining days as the last week
+            if (currentWeek.Count > 0)
+            {
+                weeks.Add(currentWeek);
+            }
+            
+            return weeks;
+        }
     }
 }
