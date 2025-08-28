@@ -1,13 +1,49 @@
 /* Top navigation buttons */
 .top-nav-buttons {
-    position: fixed;
-    top: 60px;
-    right: 24px;
     display: flex;
-    gap: 10px;
-    z-index: 1000;
-    padding: 14px 0;
-    background-color: transparent;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* Month selection buttons */
+.month-selection {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Action buttons container */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Month navigation buttons */
+.month-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid #1b6ec2;
+    background-color: #fff;
+    color: #1b6ec2;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.month-btn:hover {
+    background-color: #f8f9fa;
+}
+
+.month-btn.selected {
+    background-color: #1b6ec2;
+    color: #fff;
+}
+
+.month-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* Loading overlay */
@@ -41,47 +77,56 @@
 /* Calendar container */
 .calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
-    margin: 20px 0;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
 }
 
 /* Each day cell */
 .day-cell {
-    border: 1px solid #ccc;
+    border: 1px solid #dee2e6;
     border-radius: 8px;
-    padding: 10px;
-    text-align: center;
-    background-color: #f9f9f9;
+    padding: 1rem;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 /* Day number */
-.day-cell > div:first-child {
+.day-header {
     font-weight: bold;
-    margin-bottom: 5px;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-size: 0.9rem;
 }
 
 /* Shift buttons container */
 .shifts {
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 /* Individual shift buttons */
 .shift-button {
-    border: 1px solid #888;
-    border-radius: 5px;
-    padding: 5px 8px;
-    background-color: white;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    padding: 0.5rem;
+    background-color: #fff;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 1.2rem;
     transition: all 0.2s ease;
+    text-align: center;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .shift-button:hover {
-    background-color: #e0e0e0;
+    background-color: #f8f9fa;
+    border-color: #007bff;
+    transform: translateY(-1px);
 }
 
 /* Selected shift */
