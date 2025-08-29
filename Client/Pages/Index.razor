@@ -3,11 +3,10 @@
 
 <div class="top-nav-buttons">
     <div class="month-selection">
-        <button class="btn month-btn @(_isCurrentMonth ? "" : "selected")" @onclick="SelectNextMonth" disabled="@_isLoadingInitial">Next Month</button>
-        <button class="btn month-btn @(_isCurrentMonth ? "selected" : "")" @onclick="SelectCurrentMonth" disabled="@_isLoadingInitial">Current Month</button>
+        <button class="btn month-btn @(_isCurrentMonth ? "selected" : "")" @onclick="SelectCurrentMonth" disabled="@_isLoadingInitial">@MonthAndYear.CurrentMonthName</button>
+        <button class="btn month-btn @(_isCurrentMonth ? "" : "selected")" @onclick="SelectNextMonth" disabled="@_isLoadingInitial">@MonthAndYear.NextMonthName</button>
     </div>
     <div class="action-buttons">
-        <button class="reset-btn" @onclick="ResetSchedule" disabled="@_isLoadingInitial">Reset Schedule</button>
         <button class="btn export-btn" @onclick="ExportToIcs" disabled="@_isLoadingInitial">Export to ICS</button>
         <button class="btn export-btn" @onclick="ExportToPdf" disabled="@_isLoadingInitial">Export to PDF</button>
         <button class="btn config-btn" @onclick="ShowConfiguration" disabled="@_isLoadingInitial">⚙️ Configuration</button>
@@ -44,54 +43,108 @@
 else
 {
 
-<div class="calendar-grid">
-    @foreach (var day in SelectedDate.DaysInMonth())
-    {
-        <div class="day-cell">
-            <div class="day-header">
-                @day.ToString("dd.MM.yyyy") (@day.ToString("dddd"))
-            </div>
-            <div class="shifts">
-                @foreach (var shift in Shifts)
-                {
-                    <div class="tooltip-wrapper">
-                        <button class="shift-button @(SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name ? "selected" : "")"
-                                @onclick="() => SelectShift(day, shift.Name)"
-                                disabled="@_isLoadingTransport">
-                            @if (_isLoadingTransport && SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name)
-                            {
-                                <span class="loading-spinner">⏳</span>
-                            }
-                            else
-                            {
-                                @if (shift.IsPngIcon)
+<div class="calendar-container">
+    <!-- Desktop week-based layout -->
+    <div class="calendar-grid desktop-calendar">
+        @foreach (var week in SelectedDate.GetWeeksInMonth())
+        {
+            @foreach (var day in week.Value)
+            {
+                <div class="day-cell">
+                    <div class="day-header">
+                        @day.ToString("dd.MM.yyyy") (@day.ToString("dddd"))
+                    </div>
+                    <div class="shifts">
+                        @foreach (var shift in Shifts)
+                        {
+                            <div class="tooltip-wrapper">
+                                <button class="shift-button @(SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name ? "selected" : "")"
+                                        @onclick="() => SelectShift(day, shift.Name)"
+                                        disabled="@_isLoadingTransport">
+                                    @if (_isLoadingTransport && SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name)
+                                    {
+                                        <span class="loading-spinner">⏳</span>
+                                    }
+                                    else
+                                    {
+                                        @if (shift.IsPngIcon)
+                                        {
+                                            <img src="icons\@shift.Icon" alt="@shift.Name" style="width: 24px; height: 24px;" />
+                                        }
+                                        else
+                                        {
+                                            @shift.Icon
+                                        }
+                                    }
+                                </button>
+                                <span class="tooltip">@shift.Name</span>
+                            </div>
+                        }
+                    </div>
+                    @if (SelectedSchedule.ContainsKey(day))
+                    {
+                        <div class="shift-times">
+                            @GetShiftTimes(day)
+                        </div>
+                        <div class="transport-info">
+                            @GetTransportSummary(day)
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+    
+    <!-- Mobile single-column layout -->
+    <div class="calendar-grid mobile-calendar">
+        @foreach (var day in SelectedDate.DaysInMonth())
+        {
+            <div class="day-cell">
+                <div class="day-header">
+                    @day.ToString("dd.MM.yyyy") (@day.ToString("dddd"))
+                </div>
+                <div class="shifts">
+                    @foreach (var shift in Shifts)
+                    {
+                        <div class="tooltip-wrapper">
+                            <button class="shift-button @(SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name ? "selected" : "")"
+                                    @onclick="() => SelectShift(day, shift.Name)"
+                                    disabled="@_isLoadingTransport">
+                                @if (_isLoadingTransport && SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name)
                                 {
-                                    <img src="icons\@shift.Icon" alt="@shift.Name" style="width: 24px; height: 24px;" />
+                                    <span class="loading-spinner">⏳</span>
                                 }
                                 else
                                 {
-                                    @shift.Icon
+                                    @if (shift.IsPngIcon)
+                                    {
+                                        <img src="icons\@shift.Icon" alt="@shift.Name" style="width: 24px; height: 24px;" />
+                                    }
+                                    else
+                                    {
+                                        @shift.Icon
+                                    }
                                 }
-                            }
-                        </button>
-                        <span class="tooltip">@shift.Name</span>
+                            </button>
+                            <span class="tooltip">@shift.Name</span>
+                        </div>
+                    }
+                </div>
+                @if (SelectedSchedule.ContainsKey(day))
+                {
+                    <div class="shift-times">
+                        @GetShiftTimes(day)
+                    </div>
+                    <div class="transport-info">
+                        @GetTransportSummary(day)
                     </div>
                 }
             </div>
-            @if (SelectedSchedule.ContainsKey(day))
-            {
-                <div class="shift-times">
-                    <small>@GetShiftTimes(day)</small>
-                </div>
-                <div class="transport-info">
-                    <small>@GetTransportSummary(day)</small>
-                </div>
-            }
-        </div>
-    }
+        }
+    </div>
 </div>
 }
 
 <ConfigurationDialog IsVisible="_showConfigDialog" 
-                    OnClose="HideConfiguration" 
-                    OnConfigurationChanged="OnConfigurationChanged" />
+                     OnClose="HideConfiguration" 
+                     OnConfigurationChanged="OnConfigurationChanged" />
