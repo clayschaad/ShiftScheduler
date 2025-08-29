@@ -331,15 +331,15 @@ namespace ShiftScheduler.Client.Pages
             
             foreach (var day in days)
             {
-                // Add the day to current week
-                currentWeek.Add(day);
-                
-                // End the week when it's Sunday
-                if (day.DayOfWeek == DayOfWeek.Sunday)
+                // Start a new week if this is Monday and we have days in current week
+                if (day.DayOfWeek == DayOfWeek.Monday && currentWeek.Count > 0)
                 {
                     weeks.Add(currentWeek);
                     currentWeek = new List<DateTime>();
                 }
+                
+                // Add the day to current week
+                currentWeek.Add(day);
             }
             
             // Add any remaining days as the last week
