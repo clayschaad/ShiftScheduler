@@ -7,9 +7,9 @@
         <button class="btn month-btn @(_isCurrentMonth ? "" : "selected")" @onclick="SelectNextMonth" disabled="@_isLoadingInitial">@MonthAndYear.NextMonthName</button>
     </div>
     <div class="action-buttons">
-        <button class="btn export-btn" @onclick="ExportToIcs" disabled="@_isLoadingInitial">Export to ICS</button>
-        <button class="btn export-btn" @onclick="ExportToPdf" disabled="@_isLoadingInitial">Export to PDF</button>
-        <button class="btn config-btn" @onclick="ShowConfiguration" disabled="@_isLoadingInitial">⚙️ Configuration</button>
+        <button class="btn export-btn" @onclick="ExportToIcs" disabled="@_isLoadingInitial"><span class="oi oi-calendar" aria-hidden="true"></span> Export to ICS</button>
+        <button class="btn export-btn" @onclick="ExportToPdf" disabled="@_isLoadingInitial"><span class="oi oi-document" aria-hidden="true"></span> Export to PDF</button>
+        <button class="btn config-btn" @onclick="ShowConfiguration" disabled="@_isLoadingInitial"><span class="oi oi-cog" aria-hidden="true"></span> Configuration</button>
     </div>
 </div>
 
