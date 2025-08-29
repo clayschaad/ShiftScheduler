@@ -7,7 +7,6 @@
         <button class="btn month-btn @(_isCurrentMonth ? "selected" : "")" @onclick="SelectCurrentMonth" disabled="@_isLoadingInitial">Current Month</button>
     </div>
     <div class="action-buttons">
-        <button class="reset-btn" @onclick="ResetSchedule" disabled="@_isLoadingInitial">Reset Schedule</button>
         <button class="btn export-btn" @onclick="ExportToIcs" disabled="@_isLoadingInitial">Export to ICS</button>
         <button class="btn export-btn" @onclick="ExportToPdf" disabled="@_isLoadingInitial">Export to PDF</button>
         <button class="btn config-btn" @onclick="ShowConfiguration" disabled="@_isLoadingInitial">⚙️ Configuration</button>
