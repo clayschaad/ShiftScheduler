@@ -322,7 +322,7 @@ namespace ShiftScheduler.Client.Pages
         }
 
         // Helper method to group days by week for desktop calendar view
-        // Each week starts with Monday and ends with Sunday (max 7 days per row)
+        // Each week starts with Monday and ends with Sunday
         private List<List<DateTime>> GetWeeksInMonth()
         {
             var days = SelectedDate.DaysInMonth();
@@ -334,8 +334,8 @@ namespace ShiftScheduler.Client.Pages
                 // Add the day to current week
                 currentWeek.Add(day);
                 
-                // If it's Sunday or we have 7 days, end the week
-                if (day.DayOfWeek == DayOfWeek.Sunday || currentWeek.Count == 7)
+                // End the week when it's Sunday
+                if (day.DayOfWeek == DayOfWeek.Sunday)
                 {
                     weeks.Add(currentWeek);
                     currentWeek = new List<DateTime>();
