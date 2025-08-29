@@ -8,5 +8,11 @@ namespace ShiftScheduler.Shared
         public string AfternoonTime { get; set; } = string.Empty;
 
         public bool IsPngIcon => Icon.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
+        
+        public bool IsOpenIconicIcon => Icon.StartsWith("oi-", StringComparison.OrdinalIgnoreCase);
+        
+        public bool IsUnicodeIcon => !IsPngIcon && !IsOpenIconicIcon;
+        
+        public string GetOpenIconicClass() => IsOpenIconicIcon ? $"oi {Icon}" : string.Empty;
     }
 }

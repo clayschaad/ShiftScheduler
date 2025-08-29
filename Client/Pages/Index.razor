@@ -71,6 +71,10 @@ else
                                         {
                                             <img src="icons\@shift.Icon" alt="@shift.Name" style="width: 24px; height: 24px;" />
                                         }
+                                        else if (shift.IsOpenIconicIcon)
+                                        {
+                                            <span class="@shift.GetOpenIconicClass()" style="font-size: 16px;" title="@shift.Name" aria-hidden="true"></span>
+                                        }
                                         else
                                         {
                                             @shift.Icon
@@ -119,6 +123,10 @@ else
                                     @if (shift.IsPngIcon)
                                     {
                                         <img src="icons\@shift.Icon" alt="@shift.Name" style="width: 24px; height: 24px;" />
+                                    }
+                                    else if (shift.IsOpenIconicIcon)
+                                    {
+                                        <span class="@shift.GetOpenIconicClass()" style="font-size: 16px;" title="@shift.Name" aria-hidden="true"></span>
                                     }
                                     else
                                     {

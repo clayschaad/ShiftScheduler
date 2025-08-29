@@ -108,7 +108,25 @@
                                                     </div>
                                                     <div class="col-6">
                                                         <label class="form-label">Icon</label>
-                                                        <input type="text" class="form-control form-control-sm" @bind="_config.Shifts[index].Icon" />
+                                                        <div class="input-group">
+                                                            <input type="text" class="form-control form-control-sm" @bind="_config.Shifts[index].Icon" 
+                                                                   placeholder="Unicode, oi-icon-name, or image.png" />
+                                                            <span class="input-group-text">
+                                                                @if (_config.Shifts[index].IsPngIcon)
+                                                                {
+                                                                    <img src="icons/@_config.Shifts[index].Icon" alt="Preview" style="width: 16px; height: 16px;" />
+                                                                }
+                                                                else if (_config.Shifts[index].IsOpenIconicIcon)
+                                                                {
+                                                                    <span class="@_config.Shifts[index].GetOpenIconicClass()" style="font-size: 14px;" title="Open Iconic Icon" aria-hidden="true"></span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span style="font-size: 14px;">@_config.Shifts[index].Icon</span>
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                        <small class="form-text text-muted">Examples: ⭐, oi-clock, break-icon.png</small>
                                                     </div>
                                                     <div class="col-6">
                                                         <label class="form-label">Morning Time</label>
