@@ -3,8 +3,8 @@
 
 <div class="top-nav-buttons">
     <div class="month-selection">
-        <button class="btn month-btn @(_isCurrentMonth ? "" : "selected")" @onclick="SelectNextMonth" disabled="@_isLoadingInitial">Next Month</button>
-        <button class="btn month-btn @(_isCurrentMonth ? "selected" : "")" @onclick="SelectCurrentMonth" disabled="@_isLoadingInitial">Current Month</button>
+        <button class="btn month-btn @(_isCurrentMonth ? "selected" : "")" @onclick="SelectCurrentMonth" disabled="@_isLoadingInitial">@MonthAndYear.CurrentMonthName</button>
+        <button class="btn month-btn @(_isCurrentMonth ? "" : "selected")" @onclick="SelectNextMonth" disabled="@_isLoadingInitial">@MonthAndYear.NextMonthName</button>
     </div>
     <div class="action-buttons">
         <button class="btn export-btn" @onclick="ExportToIcs" disabled="@_isLoadingInitial">Export to ICS</button>
@@ -46,9 +46,9 @@ else
 <div class="calendar-container">
     <!-- Desktop week-based layout -->
     <div class="calendar-grid desktop-calendar">
-        @foreach (var week in GetWeeksInMonth())
+        @foreach (var week in SelectedDate.GetWeeksInMonth())
         {
-            @foreach (var day in week)
+            @foreach (var day in week.Value)
             {
                 <div class="day-cell">
                     <div class="day-header">
@@ -84,10 +84,10 @@ else
                     @if (SelectedSchedule.ContainsKey(day))
                     {
                         <div class="shift-times">
-                            <small>@GetShiftTimes(day)</small>
+                            @GetShiftTimes(day)
                         </div>
                         <div class="transport-info">
-                            <small>@GetTransportSummary(day)</small>
+                            @GetTransportSummary(day)
                         </div>
                     }
                 </div>
@@ -133,10 +133,10 @@ else
                 @if (SelectedSchedule.ContainsKey(day))
                 {
                     <div class="shift-times">
-                        <small>@GetShiftTimes(day)</small>
+                        @GetShiftTimes(day)
                     </div>
                     <div class="transport-info">
-                        <small>@GetTransportSummary(day)</small>
+                        @GetTransportSummary(day)
                     </div>
                 }
             </div>
@@ -146,5 +146,5 @@ else
 }
 
 <ConfigurationDialog IsVisible="_showConfigDialog" 
-                    OnClose="HideConfiguration" 
-                    OnConfigurationChanged="OnConfigurationChanged" />
+                     OnClose="HideConfiguration" 
+                     OnConfigurationChanged="OnConfigurationChanged" />
