@@ -83,12 +83,21 @@ else
                     </div>
                     @if (SelectedSchedule.ContainsKey(day))
                     {
-                        <div class="shift-times">
-                            @GetShiftTimes(day)
-                        </div>
-                        <div class="transport-info">
-                            @GetTransportSummary(day)
-                        </div>
+                        if (GetShiftTimes(day).Length > 0)
+                        {
+                            <div class="shift-times">
+                                @GetShiftTimes(day)
+                            </div>
+                            <div class="transport-info">
+                                @GetTransportSummary(day)
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="shift-times">
+                                @SelectedSchedule[day]
+                            </div>
+                        }
                     }
                 </div>
             }
@@ -132,12 +141,21 @@ else
                 </div>
                 @if (SelectedSchedule.ContainsKey(day))
                 {
-                    <div class="shift-times">
-                        @GetShiftTimes(day)
-                    </div>
-                    <div class="transport-info">
-                        @GetTransportSummary(day)
-                    </div>
+                    if (GetShiftTimes(day).Length > 0)
+                    {
+                        <div class="shift-times">
+                            @GetShiftTimes(day)
+                        </div>
+                        <div class="transport-info">
+                            @GetTransportSummary(day)
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="shift-times">
+                            @SelectedSchedule[day]
+                        </div>
+                    }
                 }
             </div>
         }

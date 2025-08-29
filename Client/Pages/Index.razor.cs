@@ -272,13 +272,15 @@ namespace ShiftScheduler.Client.Pages
             
             var morningTransport = shiftWithTransport.GetMorningTransportSummary();
             if (!string.IsNullOrEmpty(morningTransport))
-                summaries.Add($"🚂 {morningTransport}");
+                summaries.Add(morningTransport);
                 
             var afternoonTransport = shiftWithTransport.GetAfternoonTransportSummary();
             if (!string.IsNullOrEmpty(afternoonTransport))
-                summaries.Add($"🚂 {afternoonTransport}");
+                summaries.Add(afternoonTransport);
+            
+            if (summaries.Count == 0) { return string.Empty; }
                 
-            return string.Join(" | ", summaries);
+            return "🚂 " + string.Join(" | ", summaries);
         }
 
         // Helper method to get shift times for display
