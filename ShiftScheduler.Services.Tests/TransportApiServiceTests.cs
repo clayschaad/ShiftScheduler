@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using ShiftScheduler.Services;
@@ -12,6 +13,7 @@ public class TransportApiServiceTests
 {
     private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
     private readonly Mock<IConfigurationService> _configurationServiceMock;
+    private readonly Mock<ILogger<TransportApiService>> _loggerMock;
     private readonly HttpClient _httpClient;
     private readonly TransportApiService _transportApiService;
 
@@ -20,6 +22,7 @@ public class TransportApiServiceTests
         _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
         _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
         _configurationServiceMock = new Mock<IConfigurationService>();
+        _loggerMock = new Mock<ILogger<TransportApiService>>();
         
         var config = new TransportConfiguration
         {
@@ -37,7 +40,7 @@ public class TransportApiServiceTests
             .Setup(x => x.GetTransportConfiguration())
             .Returns(config);
         
-        _transportApiService = new TransportApiService(_httpClient, _configurationServiceMock.Object);
+        _transportApiService = new TransportApiService(_httpClient, _configurationServiceMock.Object, _loggerMock.Object);
     }
 
     [Fact]
