@@ -46,9 +46,9 @@ else
 <div class="calendar-container">
     <!-- Desktop week-based layout -->
     <div class="calendar-grid desktop-calendar">
-        @foreach (var week in SelectedDate.GetWeeksInMonth())
+        @foreach (var week in GetWeeksInMonth())
         {
-            @foreach (var day in week.Value)
+            @foreach (var day in week)
             {
                 <div class="day-cell">
                     <div class="day-header">
