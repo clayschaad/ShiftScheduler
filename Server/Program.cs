@@ -28,6 +28,8 @@ builder.Services.AddSingleton<IcsExportService>();
 builder.Services.AddSingleton<PdfExportService>();
 builder.Services.AddSingleton<ITransportApiService, TransportApiService>();
 builder.Services.AddSingleton<ITransportService, TransportService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
 
 // Configure authentication
 builder.Services.AddAuthentication(options =>
@@ -51,6 +53,7 @@ builder.Services.AddAuthentication(options =>
     googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
     googleOptions.CallbackPath = "/signin-google";
     googleOptions.SaveTokens = true;
+    googleOptions.Scope.Add("https://www.googleapis.com/auth/calendar");
     googleOptions.Events.OnTicketReceived = async context =>
     {
         var emailClaim = context.Principal?.FindFirst(ClaimTypes.Email) ??
