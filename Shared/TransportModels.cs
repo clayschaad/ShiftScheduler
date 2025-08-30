@@ -19,6 +19,11 @@ namespace ShiftScheduler.Shared
         public string Duration { get; set; } = string.Empty;
         public string? Platform { get; set; } = string.Empty;
         public List<TransportSection> Sections { get; set; } = new();
+
+        public override string ToString()
+        {
+            return $"{Platform}: {DepartureTime} - {ArrivalTime} ({Duration})";
+        }
     }
 
     public class TransportSection

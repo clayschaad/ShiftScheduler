@@ -1,9 +1,10 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
 {
-    public class TransportApiService(HttpClient httpClient, IConfigurationService configurationService) : ITransportApiService
+    public class TransportApiService(HttpClient httpClient, IConfigurationService configurationService, ILogger<TransportApiService> logger) : ITransportApiService
     {
         public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime)
         {
@@ -24,12 +25,22 @@ namespace ShiftScheduler.Services
             if (apiResponse?.Connections.Count > 0)
             {
                 var allConnections = apiResponse.Connections.Select(MapToTransportConnection).ToList();
-                return TransportConnectionCalculator.FindBestConnection(
+
+                foreach (var connection in allConnections)
+                {
+                    logger.LogInformation($"Found connection {connection}");
+                }
+                
+                var bestConnection = TransportConnectionCalculator.FindBestConnection(
                     allConnections, 
                     shiftStartTime, 
                     config.SafetyBufferMinutes, 
                     config.MaxEarlyArrivalMinutes, 
                     config.MaxLateArrivalMinutes);
+
+                logger.LogInformation($"Found best {bestConnection}");
+                
+                return bestConnection;
             }
 
             return null;
