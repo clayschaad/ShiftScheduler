@@ -2,10 +2,6 @@
 
 A modern Blazor WebAssembly application for managing work shift schedules with calendar export capabilities and transport integration.
 
-![Login Screen](https://github.com/user-attachments/assets/23aed472-7dbb-430f-81d1-b2f763330384)
-
-![Shift Calendar](https://github.com/user-attachments/assets/245efc6f-6ac2-413b-986e-d59042533b53)
-
 ## Overview
 
 ShiftScheduler is a web-based shift management system that allows users to:
