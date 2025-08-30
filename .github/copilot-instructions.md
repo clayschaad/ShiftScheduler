@@ -150,6 +150,9 @@ void Foo(params IReadOnlyList<string> values) => // actual implementation here.`
 - Avoid unnecessary allocations
 - Avoid calling methods that access APIs or databases inside loops
 
+### Documentation
+- Update the README.md file to reflect important changes
+
 ## Domain-Specific Patterns
 
 ### ID Types and Records
