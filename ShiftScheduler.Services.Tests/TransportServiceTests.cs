@@ -46,9 +46,9 @@ public class TransportServiceTests
         var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
         var connection = new TransportConnection
         {
-            DepartureTime = "2023-12-15T06:45:00",
-            ArrivalTime = "2023-12-15T07:30:00",
-            Duration = "00:45:00",
+            DepartureTime = T("2023-12-15T06:45:00"),
+            ArrivalTime = T("2023-12-15T07:30:00"),
+            Duration = TimeSpan.Parse("00:45:00"),
             Platform = "5"
         };
         
@@ -100,11 +100,11 @@ public class TransportServiceTests
     public async Task GetConnectionAsync_WithDifferentDates_ShouldCreateSeparateCacheEntries()
     {
         // Arrange
-        var shiftStartTime1 = new DateTime(2023, 12, 15, 8, 0, 0);
-        var shiftStartTime2 = new DateTime(2023, 12, 16, 8, 0, 0);
+        var shiftStartTime1 = T("2023-12-15T08:00:00");
+        var shiftStartTime2 = T("2023-12-16T08:00:00");
         
-        var connection1 = new TransportConnection { ArrivalTime = "2023-12-15T07:30:00" };
-        var connection2 = new TransportConnection { ArrivalTime = "2023-12-16T07:30:00" };
+        var connection1 = new TransportConnection { ArrivalTime = T("2023-12-15T07:30:00") };
+        var connection2 = new TransportConnection { ArrivalTime = T("2023-12-16T07:30:00") };
         
         _transportServiceMock
             .Setup(x => x.GetConnectionAsync(shiftStartTime1))
@@ -121,10 +121,15 @@ public class TransportServiceTests
         // Assert
         result1.ShouldNotBeNull();
         result2.ShouldNotBeNull();
-        result1.ArrivalTime.ShouldBe("2023-12-15T07:30:00");
-        result2.ArrivalTime.ShouldBe("2023-12-16T07:30:00");
+        result1.ArrivalTime.ShouldBe(T("2023-12-15T07:30:00"));
+        result2.ArrivalTime.ShouldBe(T("2023-12-16T07:30:00"));
         
         // Verify that transport service was called twice (different cache keys)
-        _transportServiceMock.Verify(x => x.GetConnectionAsync(It.IsAny<DateTime>()), Times.Exactly(2));
+        _transportServiceMock.Verify(x => x.GetConnectionAsync(It.IsAny<DateTimeOffset>()), Times.Exactly(2));
+    }
+
+    private DateTimeOffset T(string dateTimeString)
+    {
+        return DateTimeOffset.Parse(dateTimeString);
     }
 }

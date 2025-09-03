@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ShiftScheduler.Shared;
@@ -6,7 +7,7 @@ namespace ShiftScheduler.Services
 {
     public class TransportApiService(HttpClient httpClient, IConfigurationService configurationService, ILogger<TransportApiService> logger) : ITransportApiService
     {
-        public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime)
+        public async Task<TransportConnection?> GetConnectionAsync(DateTimeOffset shiftStartTime)
         {
             var config = configurationService.GetTransportConfiguration();
             
@@ -45,11 +46,12 @@ namespace ShiftScheduler.Services
             if (apiConnection == null)
                 return new TransportConnection();
 
+            var formats = new[] { @"dd'd'hh\:mm\:ss", @"d'd'hh\:mm\:ss" };
             return new TransportConnection
             {
-                DepartureTime = apiConnection.From?.Departure ?? string.Empty,
-                ArrivalTime = apiConnection.To?.Arrival ?? string.Empty,
-                Duration = apiConnection.Duration,
+                DepartureTime = DateTimeOffset.Parse(apiConnection.From!.Departure),
+                ArrivalTime = DateTimeOffset.Parse(apiConnection.To!.Arrival),
+                Duration = TimeSpan.ParseExact(apiConnection.Duration, formats, CultureInfo.InvariantCulture),
                 Platform = apiConnection.From?.Platform ?? string.Empty,
             };
         }

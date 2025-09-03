@@ -20,7 +20,7 @@ public class TransportConnectionCalculatorTests
             new(arrivalTime: "2023-12-15T07:25:00"), // Should be selected (latest valid)
             new(arrivalTime: "2023-12-15T08:05:00") // Too late
         };
-        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        var shiftStartTime = T("2023-12-15T08:00:00");
 
         // Act
         var result = TransportConnectionCalculator.FindBestConnection(
@@ -30,7 +30,7 @@ public class TransportConnectionCalculatorTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.ArrivalTime.ShouldBe("2023-12-15T07:25:00");
+        result.ArrivalTime.ShouldBe(T("2023-12-15T07:25:00"));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class TransportConnectionCalculatorTests
             new(arrivalTime: "2023-12-15T06:45:00"), // Too early (more than 60 min before 8:00)
             new(arrivalTime: "2023-12-15T08:05:00") // Within acceptable late range (15 min after 8:00)
         };
-        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        var shiftStartTime = T("2023-12-15T08:00:00");
 
         // Act
         var result = TransportConnectionCalculator.FindBestConnection(
@@ -52,7 +52,7 @@ public class TransportConnectionCalculatorTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.ArrivalTime.ShouldBe("2023-12-15T08:05:00");
+        result.ArrivalTime.ShouldBe(T("2023-12-15T08:05:00"));
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class TransportConnectionCalculatorTests
             new(arrivalTime: "2023-12-15T08:05:00"), // Should be selected (earliest late)
             new(arrivalTime: "2023-12-15T08:12:00")
         };
-        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        var shiftStartTime = T("2023-12-15T08:00:00");
 
         // Act
         var result = TransportConnectionCalculator.FindBestConnection(
@@ -75,7 +75,7 @@ public class TransportConnectionCalculatorTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.ArrivalTime.ShouldBe("2023-12-15T08:05:00");
+        result.ArrivalTime.ShouldBe(T("2023-12-15T08:05:00"));
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class TransportConnectionCalculatorTests
             new(arrivalTime: "2023-12-15T08:25:00"),
             new(arrivalTime: "2023-12-15T08:30:00")
         };
-        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        var shiftStartTime = T("2023-12-15T08:00:00");
 
         // Act
         var result = TransportConnectionCalculator.FindBestConnection(
@@ -109,7 +109,7 @@ public class TransportConnectionCalculatorTests
             new(arrivalTime: "2023-12-15T07:20:00"), // 40 min before shift - acceptable
             new(arrivalTime: "2023-12-15T08:05:00") // 5 min after shift
         };
-        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        var shiftStartTime = T("2023-12-15T08:00:00");
 
         // Act
         var result = TransportConnectionCalculator.FindBestConnection(
@@ -119,14 +119,14 @@ public class TransportConnectionCalculatorTests
 
         // Assert
         result.ShouldNotBeNull();
-        result.ArrivalTime.ShouldBe("2023-12-15T07:20:00");
+        result.ArrivalTime.ShouldBe(T("2023-12-15T07:20:00"));
     }
 
     [Fact]
     public void FindBestConnectionEnhanced_WithEmptyConnections_ShouldReturnNull()
     {
         // Arrange
-        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        var shiftStartTime = T("2023-12-15T08:00:00");
 
         // Act
         var result = TransportConnectionCalculator.FindBestConnection(
@@ -149,7 +149,7 @@ public class TransportConnectionCalculatorTests
             new(arrivalTime: "2023-12-15T08:05:00"), // Late but acceptable
             new(arrivalTime: "2023-12-15T08:20:00") // Too late
         };
-        var shiftStartTime = new DateTime(2023, 12, 15, 8, 0, 0);
+        var shiftStartTime = T("2023-12-15T08:00:00");
 
         // Act - MaxEarlyArrivalMinutes = 30, so earliest acceptable is 7:30
         var result = TransportConnectionCalculator.FindBestConnection(
@@ -159,6 +159,11 @@ public class TransportConnectionCalculatorTests
 
         // Assert - 7:25 arrives at 7:25, which is 35 min before shift (more than 30 min), so should prefer late connection
         result.ShouldNotBeNull();
-        result.ArrivalTime.ShouldBe("2023-12-15T08:05:00");
+        result.ArrivalTime.ShouldBe(T("2023-12-15T08:05:00"));
+    }
+    
+    private DateTimeOffset T(string dateTimeString)
+    {
+        return DateTimeOffset.Parse(dateTimeString);
     }
 }

@@ -1,11 +1,10 @@
-using System.Globalization;
 using Microsoft.Extensions.Logging;
 using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services;
 
 public record ConnectionPickArgument(
-    DateTime ShiftStartTime,
+    DateTimeOffset ShiftStartTime,
     int SafetyBufferMinutes,
     int MaxEarlyArrivalMinutes,
     int MaxLateArrivalMinutes)
@@ -35,16 +34,13 @@ public static class TransportConnectionCalculator
 
         foreach (var connection in connections)
         {
-            if (DateTime.TryParse(connection.ArrivalTime, out var arrivalTime))
+            if (connection.ArrivalTime <= latestArrivalTime)
             {
-                if (arrivalTime <= latestArrivalTime)
-                {
-                    validConnections.Add(connection);
-                }
-                else if (arrivalTime <= latestAcceptableTime)
-                {
-                    lateValidConnections.Add(connection);
-                }
+                validConnections.Add(connection);
+            }
+            else if (connection.ArrivalTime <= latestAcceptableTime)
+            {
+                lateValidConnections.Add(connection);
             }
         }
 
@@ -52,18 +48,17 @@ public static class TransportConnectionCalculator
         if (validConnections.Count > 0)
         {
             var sortedValid = validConnections
-                .OrderBy(c => DateTime.Parse(c.ArrivalTime ?? "00:00"))
+                .OrderBy(c => c.ArrivalTime)
                 .ToList();
 
             var bestValidConnection = sortedValid.Last();
-            var bestValidArrivalTime = DateTime.Parse(bestValidConnection.ArrivalTime!);
 
             // Check if the best valid connection arrives too early (more than maxEarlyArrivalMinutes before shift)
-            if (bestValidArrivalTime < earliestAcceptableTime && lateValidConnections.Count > 0)
+            if (bestValidConnection.ArrivalTime < earliestAcceptableTime && lateValidConnections.Count > 0)
             {
                 // Return the earliest connection that arrives after latest arrival time but within acceptable range
                 var sortedLateValid = lateValidConnections
-                    .OrderBy(c => DateTime.Parse(c.ArrivalTime ?? "23:59"))
+                    .OrderBy(c => c.ArrivalTime)
                     .ToList();
                 
                 return sortedLateValid.First();
@@ -76,7 +71,7 @@ public static class TransportConnectionCalculator
         if (lateValidConnections.Count > 0)
         {
             var sortedLateValid = lateValidConnections
-                .OrderBy(c => DateTime.Parse(c.ArrivalTime ?? "23:59"))
+                .OrderBy(c => c.ArrivalTime)
                 .ToList();
             
             return sortedLateValid.First();

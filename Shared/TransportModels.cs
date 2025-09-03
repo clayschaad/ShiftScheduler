@@ -20,12 +20,12 @@ namespace ShiftScheduler.Shared
 
         public TransportConnection(string arrivalTime)
         {
-            ArrivalTime = arrivalTime;
+            ArrivalTime = DateTimeOffset.Parse(arrivalTime);
         }
 
-        public string DepartureTime { get; set; } = string.Empty;
-        public string ArrivalTime { get; set; } = string.Empty;
-        public string Duration { get; set; } = string.Empty;
+        public DateTimeOffset DepartureTime { get; set; }
+        public DateTimeOffset ArrivalTime { get; set; }
+        public TimeSpan Duration { get; set; }
         public string? Platform { get; set; } = string.Empty;
 
         public override string ToString()
