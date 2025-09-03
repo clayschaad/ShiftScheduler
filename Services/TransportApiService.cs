@@ -51,37 +51,6 @@ namespace ShiftScheduler.Services
                 ArrivalTime = apiConnection.To?.Arrival ?? string.Empty,
                 Duration = apiConnection.Duration,
                 Platform = apiConnection.From?.Platform ?? string.Empty,
-                Sections = apiConnection.Sections.Select(s => new TransportSection
-                {
-                    Journey = s.Journey != null ? new TransportJourney
-                    {
-                        Name = s.Journey.Name,
-                        Category = s.Journey.Category,
-                        Number = s.Journey.Number
-                    } : null,
-                    Departure = s.Departure != null ? new TransportCheckpoint
-                    {
-                        Station = s.Departure.Station != null ? new TransportStation
-                        {
-                            Name = s.Departure.Station.Name,
-                            Id = s.Departure.Station.Id
-                        } : null,
-                        Departure = s.Departure.Departure,
-                        Arrival = s.Departure.Arrival,
-                        Platform = s.Departure.Platform
-                    } : null,
-                    Arrival = s.Arrival != null ? new TransportCheckpoint
-                    {
-                        Station = s.Arrival.Station != null ? new TransportStation
-                        {
-                            Name = s.Arrival.Station.Name,
-                            Id = s.Arrival.Station.Id
-                        } : null,
-                        Departure = s.Arrival.Departure,
-                        Arrival = s.Arrival.Arrival,
-                        Platform = s.Arrival.Platform
-                    } : null
-                }).ToList()
             };
         }
     }

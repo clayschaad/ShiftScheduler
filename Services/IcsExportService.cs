@@ -71,12 +71,6 @@ namespace ShiftScheduler.Services
             var departure = DateTime.TryParse(transport.DepartureTime, out var dep) ? dep.ToString("HH:mm") : transport.DepartureTime;
             var arrival = DateTime.TryParse(transport.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : transport.ArrivalTime;
             
-            var mainJourney = transport.Sections?.FirstOrDefault()?.Journey;
-            if (mainJourney != null)
-            {
-                return $"{mainJourney.Category} {mainJourney.Number}: {departure} → {arrival}";
-            }
-            
             return $"{departure} → {arrival}";
         }
     }

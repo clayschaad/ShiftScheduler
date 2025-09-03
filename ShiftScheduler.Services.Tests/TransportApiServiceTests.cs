@@ -62,13 +62,6 @@ public class TransportApiServiceTests
         result.ArrivalTime.ShouldBe("2023-12-15T07:30:00");
         result.Duration.ShouldBe("00:45:00");
         result.Platform.ShouldBe("5");
-        result.Sections.ShouldNotBeEmpty();
-        result.Sections.Count.ShouldBe(1);
-        
-        var section = result.Sections.First();
-        section.Journey?.Name.ShouldBe("IC 1");
-        section.Journey?.Category.ShouldBe("IC");
-        section.Journey?.Number.ShouldBe("1");
     }
 
     [Fact]
