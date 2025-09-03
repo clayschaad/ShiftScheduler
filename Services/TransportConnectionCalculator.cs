@@ -32,7 +32,7 @@ public static class TransportConnectionCalculator
         var validConnections = new List<TransportConnection>();
         var lateValidConnections = new List<TransportConnection>();
 
-        foreach (var connection in connections)
+        foreach (var connection in connections.OrderBy(c => c.ArrivalTime))
         {
             if (connection.ArrivalTime <= latestArrivalTime)
             {
@@ -47,10 +47,7 @@ public static class TransportConnectionCalculator
         // If we have valid connections (arriving before latest arrival time)
         if (validConnections.Count > 0)
         {
-            var bestValidConnection = validConnections
-                .OrderBy(c => c.ArrivalTime)
-                .Last();
-
+            var bestValidConnection = validConnections.Last();
             if (bestValidConnection.ArrivalTime > earliestAcceptableTime)
             {
                 return bestValidConnection;
@@ -60,11 +57,7 @@ public static class TransportConnectionCalculator
         // If no connections arrive before latest arrival time, check if any arrive within acceptable late range
         if (lateValidConnections.Count > 0)
         {
-            var bestLateConnection = lateValidConnections
-                .OrderBy(c => c.ArrivalTime)
-                .First();
-            
-            return bestLateConnection;
+            return lateValidConnections.First();
         }
 
         return validConnections.FirstOrDefault();
