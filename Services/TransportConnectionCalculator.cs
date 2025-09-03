@@ -1,19 +1,34 @@
+using System.Globalization;
+using Microsoft.Extensions.Logging;
 using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services;
 
+public record ConnectionPickArgument(
+    DateTime ShiftStartTime,
+    int SafetyBufferMinutes,
+    int MaxEarlyArrivalMinutes,
+    int MaxLateArrivalMinutes)
+{
+    public override string ToString()
+    {
+        return $"ShiftStartTime: {ShiftStartTime}, SafetyBufferMinutes: {SafetyBufferMinutes}, MaxEarlyArrivalMinutes{MaxEarlyArrivalMinutes}, MaxLateArrivalMinutes:{MaxLateArrivalMinutes}";
+    }
+}
+
 public static class TransportConnectionCalculator
 {
     public static TransportConnection? FindBestConnection(
-        IReadOnlyList<TransportConnection> connections, 
-        DateTime shiftStartTime, 
-        int safetyBufferMinutes, 
-        int maxEarlyArrivalMinutes, 
-        int maxLateArrivalMinutes)
+        IReadOnlyList<TransportConnection> connections, ConnectionPickArgument args, ILogger logger)
     {
-        var latestArrivalTime = shiftStartTime.AddMinutes(-safetyBufferMinutes);
-        var earliestAcceptableTime = shiftStartTime.AddMinutes(-maxEarlyArrivalMinutes);
-        var latestAcceptableTime = shiftStartTime.AddMinutes(maxLateArrivalMinutes);
+        var latestArrivalTime = args.ShiftStartTime.AddMinutes(-args.SafetyBufferMinutes);
+        var earliestAcceptableTime = args.ShiftStartTime.AddMinutes(-args.MaxEarlyArrivalMinutes);
+        var latestAcceptableTime = args.ShiftStartTime.AddMinutes(args.MaxLateArrivalMinutes);
+        
+        logger.LogDebug(args.ToString());
+        logger.LogDebug(latestArrivalTime.ToString(CultureInfo.CurrentCulture));
+        logger.LogDebug(earliestAcceptableTime.ToString(CultureInfo.CurrentCulture));
+        logger.LogDebug(latestAcceptableTime.ToString(CultureInfo.CurrentCulture));
 
         var validConnections = new List<TransportConnection>();
         var lateValidConnections = new List<TransportConnection>();
@@ -67,7 +82,6 @@ public static class TransportConnectionCalculator
             return sortedLateValid.First();
         }
 
-        // No suitable connections found
         return null;
     }
 }

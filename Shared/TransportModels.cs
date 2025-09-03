@@ -14,6 +14,15 @@ namespace ShiftScheduler.Shared
 
     public class TransportConnection
     {
+        public TransportConnection()
+        {
+        }
+
+        public TransportConnection(string arrivalTime)
+        {
+            ArrivalTime = arrivalTime;
+        }
+
         public string DepartureTime { get; set; } = string.Empty;
         public string ArrivalTime { get; set; } = string.Empty;
         public string Duration { get; set; } = string.Empty;

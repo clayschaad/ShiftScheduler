@@ -28,17 +28,11 @@ namespace ShiftScheduler.Services
 
                 foreach (var connection in allConnections)
                 {
-                    logger.LogInformation($"Found connection {connection}");
+                    logger.LogDebug($"Found connection {connection}");
                 }
                 
                 var bestConnection = TransportConnectionCalculator.FindBestConnection(
-                    allConnections, 
-                    shiftStartTime, 
-                    config.SafetyBufferMinutes, 
-                    config.MaxEarlyArrivalMinutes, 
-                    config.MaxLateArrivalMinutes);
-
-                logger.LogInformation($"Found best {bestConnection}");
+                    allConnections, new ConnectionPickArgument(shiftStartTime, config.SafetyBufferMinutes, config.MaxEarlyArrivalMinutes, config.MaxLateArrivalMinutes), logger);
                 
                 return bestConnection;
             }
