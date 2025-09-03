@@ -28,8 +28,8 @@ namespace ShiftScheduler.Services
         private readonly string _configDirectory;
         private readonly string _shiftsFilePath;
         private readonly string _transportFilePath;
-        
-        TimeZoneInfo localTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich");
+
+        readonly TimeZoneInfo localTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich");
 
         public ConfigurationService(ApplicationConfiguration initialConfiguration)
         {
