@@ -26,7 +26,7 @@ namespace ShiftScheduler.Services
                     var summary = $"{shift.Name} (Morning)";
                     var description = "";
 
-                    if (shiftWithTransport.MorningTransport != null && !string.IsNullOrEmpty(shiftWithTransport.MorningTransport.DepartureTime))
+                    if (shiftWithTransport.MorningTransport != null)
                     {
                         var transportSummary = FormatTransportInfo(shiftWithTransport.MorningTransport);
                         description = $"Transport: {transportSummary}";
@@ -47,7 +47,7 @@ namespace ShiftScheduler.Services
                     var summary = $"{shift.Name} (Afternoon)";
                     var description = "";
 
-                    if (shiftWithTransport.AfternoonTransport != null && !string.IsNullOrEmpty(shiftWithTransport.AfternoonTransport.DepartureTime))
+                    if (shiftWithTransport.AfternoonTransport != null)
                     {
                         var transportSummary = FormatTransportInfo(shiftWithTransport.AfternoonTransport);
                         description = $"Transport: {transportSummary}";
@@ -68,15 +68,8 @@ namespace ShiftScheduler.Services
 
         private string FormatTransportInfo(TransportConnection transport)
         {
-            var departure = DateTime.TryParse(transport.DepartureTime, out var dep) ? dep.ToString("HH:mm") : transport.DepartureTime;
-            var arrival = DateTime.TryParse(transport.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : transport.ArrivalTime;
-            
-            var mainJourney = transport.Sections?.FirstOrDefault()?.Journey;
-            if (mainJourney != null)
-            {
-                return $"{mainJourney.Category} {mainJourney.Number}: {departure} → {arrival}";
-            }
-            
+            var departure =transport.DepartureTime.ToString("HH:mm");
+            var arrival = transport.ArrivalTime.ToString("HH:mm");
             return $"{departure} → {arrival}";
         }
     }

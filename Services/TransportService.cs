@@ -5,7 +5,7 @@ namespace ShiftScheduler.Services
 {
     public class TransportService(ITransportApiService transportService, IConfigurationService configurationService, IMemoryCache cache) : ITransportService
     {
-        public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime)
+        public async Task<TransportConnection?> GetConnectionAsync(DateTimeOffset shiftStartTime)
         {
             var config = configurationService.GetTransportConfiguration();
             var searchDate = shiftStartTime.ToString("yyyy-MM-dd");

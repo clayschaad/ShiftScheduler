@@ -45,14 +45,15 @@ namespace ShiftScheduler.Server.Controllers
             var transportConfig = _configurationService.GetTransportConfiguration();
             TransportConnection? morningTransport = null;
             TransportConnection? afternoonTransport = null;
+            
+            var shifTimes = _configurationService.ParseShiftTimes(request.Date, shift);
 
             // Get transport for morning shift if it has morning time
             if (!string.IsNullOrEmpty(shift.MorningTime))
             {
-                var morningStartTime = ParseShiftTime(request.Date, shift.MorningTime);
-                if (morningStartTime.HasValue)
+                if (shifTimes.MorningStart.HasValue)
                 {
-                    morningTransport = await _transportService.GetConnectionAsync(morningStartTime.Value);
+                    morningTransport = await _transportService.GetConnectionAsync(shifTimes.MorningStart.Value);
                 }
             }
 
@@ -65,22 +66,18 @@ namespace ShiftScheduler.Server.Controllers
                 // If both morning and afternoon shifts exist, check break duration
                 if (!string.IsNullOrEmpty(shift.MorningTime) && !string.IsNullOrEmpty(shift.AfternoonTime))
                 {
-                    var morningEndTime = ParseShiftEndTime(request.Date, shift.MorningTime);
-                    var afternoonStartTime = ParseShiftTime(request.Date, shift.AfternoonTime);
-                    
-                    if (morningEndTime.HasValue && afternoonStartTime.HasValue)
+                    if (shifTimes.MorningEnd.HasValue && shifTimes.AfternoonStart.HasValue)
                     {
-                        var breakDurationMinutes = (afternoonStartTime.Value - morningEndTime.Value).TotalMinutes;
+                        var breakDurationMinutes = (shifTimes.AfternoonStart.Value - shifTimes.MorningEnd.Value).TotalMinutes;
                         shouldLoadAfternoonTransport = breakDurationMinutes >= transportConfig.MinBreakMinutes;
                     }
                 }
                 
                 if (shouldLoadAfternoonTransport)
                 {
-                    var afternoonStartTime = ParseShiftTime(request.Date, shift.AfternoonTime);
-                    if (afternoonStartTime.HasValue)
+                    if (shifTimes.AfternoonStart.HasValue)
                     {
-                        afternoonTransport = await _transportService.GetConnectionAsync(afternoonStartTime.Value);
+                        afternoonTransport = await _transportService.GetConnectionAsync(shifTimes.AfternoonStart.Value);
                     }
                 }
             }
@@ -94,40 +91,6 @@ namespace ShiftScheduler.Server.Controllers
             };
 
             return Ok(shiftWithTransport);
-        }
-
-        private static DateTime? ParseShiftTime(DateTime date, string timeRange)
-        {
-            try
-            {
-                var times = timeRange.Split('-');
-                if (times.Length > 0 && TimeSpan.TryParse(times[0], out var startTime))
-                {
-                    return date.Add(startTime);
-                }
-            }
-            catch
-            {
-                // Ignore parsing errors
-            }
-            return null;
-        }
-
-        private static DateTime? ParseShiftEndTime(DateTime date, string timeRange)
-        {
-            try
-            {
-                var times = timeRange.Split('-');
-                if (times.Length > 1 && TimeSpan.TryParse(times[1], out var endTime))
-                {
-                    return date.Add(endTime);
-                }
-            }
-            catch
-            {
-                // Ignore parsing errors
-            }
-            return null;
         }
 
         [HttpPost("export_ics")]

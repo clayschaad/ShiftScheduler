@@ -1,6 +1,5 @@
 namespace ShiftScheduler.Shared
 {
-    // View model that combines shift information with transport data for a specific date
     public record ShiftWithTransport
     {
         public DateTime Date { get; init; }
@@ -20,15 +19,9 @@ namespace ShiftScheduler.Shared
         
         private string FormatTransportSummary(TransportConnection connection)
         {
-            if (string.IsNullOrEmpty(connection.DepartureTime)) return string.Empty;
-            
-            var departure = DateTime.TryParse(connection.DepartureTime, out var dep) ? dep.ToString("HH:mm") : connection.DepartureTime;
-            var arrival = DateTime.TryParse(connection.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : connection.ArrivalTime;
-            
-            var mainJourney = connection.Sections?.FirstOrDefault()?.Journey;
-            var trainInfo = mainJourney != null ? $"{mainJourney.Category}{mainJourney.Number}" : "Train";
-            
-            return $"{trainInfo} {departure}→{arrival}";
+            var departure = connection.DepartureTime.ToString("HH:mm");
+            var arrival = connection.ArrivalTime.ToString("HH:mm");
+            return $"{departure}→{arrival}";
         }
     }
 }

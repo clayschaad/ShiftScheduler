@@ -4,11 +4,11 @@ namespace ShiftScheduler.Services
 {
     public interface ITransportService
     {
-        Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime);
+        Task<TransportConnection?> GetConnectionAsync(DateTimeOffset shiftStartTime);
     }
     
     public interface ITransportApiService
     {
-        Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime);
+        Task<TransportConnection?> GetConnectionAsync(DateTimeOffset shiftStartTime);
     }
 }

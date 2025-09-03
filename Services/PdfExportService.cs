@@ -176,13 +176,13 @@ namespace ShiftScheduler.Services
 
             var transportLines = new List<string>();
 
-            if (shiftWithTransport.MorningTransport != null && !string.IsNullOrEmpty(shiftWithTransport.MorningTransport.DepartureTime))
+            if (shiftWithTransport.MorningTransport != null)
             {
                 var morningInfo = FormatTransportConnection(shiftWithTransport.MorningTransport);
                 transportLines.Add(morningInfo);
             }
 
-            if (shiftWithTransport.AfternoonTransport != null && !string.IsNullOrEmpty(shiftWithTransport.AfternoonTransport.DepartureTime))
+            if (shiftWithTransport.AfternoonTransport != null)
             {
                 var afternoonInfo = FormatTransportConnection(shiftWithTransport.AfternoonTransport);
                 transportLines.Add(afternoonInfo);
@@ -193,9 +193,8 @@ namespace ShiftScheduler.Services
 
         private static string FormatTransportConnection(TransportConnection transport)
         {
-            var departure = DateTime.TryParse(transport.DepartureTime, out var dep) ? dep.ToString("HH:mm") : transport.DepartureTime;
-            var arrival = DateTime.TryParse(transport.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : transport.ArrivalTime;
-
+            var departure = transport.DepartureTime.ToString("HH:mm");
+            var arrival = transport.ArrivalTime.ToString("HH:mm");
             return $"🚂 {departure}→{arrival}";
         }
 

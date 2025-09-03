@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ShiftScheduler.Shared;
@@ -6,7 +7,7 @@ namespace ShiftScheduler.Services
 {
     public class TransportApiService(HttpClient httpClient, IConfigurationService configurationService, ILogger<TransportApiService> logger) : ITransportApiService
     {
-        public async Task<TransportConnection?> GetConnectionAsync(DateTime shiftStartTime)
+        public async Task<TransportConnection?> GetConnectionAsync(DateTimeOffset shiftStartTime)
         {
             var config = configurationService.GetTransportConfiguration();
             
@@ -28,17 +29,11 @@ namespace ShiftScheduler.Services
 
                 foreach (var connection in allConnections)
                 {
-                    logger.LogInformation($"Found connection {connection}");
+                    logger.LogDebug($"Found connection {connection}");
                 }
                 
                 var bestConnection = TransportConnectionCalculator.FindBestConnection(
-                    allConnections, 
-                    shiftStartTime, 
-                    config.SafetyBufferMinutes, 
-                    config.MaxEarlyArrivalMinutes, 
-                    config.MaxLateArrivalMinutes);
-
-                logger.LogInformation($"Found best {bestConnection}");
+                    allConnections, new ConnectionPickArgument(shiftStartTime, config.SafetyBufferMinutes, config.MaxEarlyArrivalMinutes, config.MaxLateArrivalMinutes), logger);
                 
                 return bestConnection;
             }
@@ -51,43 +46,13 @@ namespace ShiftScheduler.Services
             if (apiConnection == null)
                 return new TransportConnection();
 
+            var formats = new[] { @"dd'd'hh\:mm\:ss", @"d'd'hh\:mm\:ss" };
             return new TransportConnection
             {
-                DepartureTime = apiConnection.From?.Departure ?? string.Empty,
-                ArrivalTime = apiConnection.To?.Arrival ?? string.Empty,
-                Duration = apiConnection.Duration,
+                DepartureTime = DateTimeOffset.Parse(apiConnection.From!.Departure),
+                ArrivalTime = DateTimeOffset.Parse(apiConnection.To!.Arrival),
+                Duration = TimeSpan.ParseExact(apiConnection.Duration, formats, CultureInfo.InvariantCulture),
                 Platform = apiConnection.From?.Platform ?? string.Empty,
-                Sections = apiConnection.Sections.Select(s => new TransportSection
-                {
-                    Journey = s.Journey != null ? new TransportJourney
-                    {
-                        Name = s.Journey.Name,
-                        Category = s.Journey.Category,
-                        Number = s.Journey.Number
-                    } : null,
-                    Departure = s.Departure != null ? new TransportCheckpoint
-                    {
-                        Station = s.Departure.Station != null ? new TransportStation
-                        {
-                            Name = s.Departure.Station.Name,
-                            Id = s.Departure.Station.Id
-                        } : null,
-                        Departure = s.Departure.Departure,
-                        Arrival = s.Departure.Arrival,
-                        Platform = s.Departure.Platform
-                    } : null,
-                    Arrival = s.Arrival != null ? new TransportCheckpoint
-                    {
-                        Station = s.Arrival.Station != null ? new TransportStation
-                        {
-                            Name = s.Arrival.Station.Name,
-                            Id = s.Arrival.Station.Id
-                        } : null,
-                        Departure = s.Arrival.Departure,
-                        Arrival = s.Arrival.Arrival,
-                        Platform = s.Arrival.Platform
-                    } : null
-                }).ToList()
             };
         }
     }
