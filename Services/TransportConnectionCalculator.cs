@@ -26,9 +26,9 @@ public static class TransportConnectionCalculator
         var latestAcceptableTime = args.ShiftStartTime.AddMinutes(args.MaxLateArrivalMinutes);
         
         logger.LogDebug(args.ToString());
-        logger.LogDebug(latestArrivalTime.ToString(CultureInfo.CurrentCulture));
-        logger.LogDebug(earliestAcceptableTime.ToString(CultureInfo.CurrentCulture));
-        logger.LogDebug(latestAcceptableTime.ToString(CultureInfo.CurrentCulture));
+        logger.LogDebug($"latestArrivalTime: {latestArrivalTime}");
+        logger.LogDebug($"earliestAcceptableTime: {earliestAcceptableTime}");
+        logger.LogDebug($"latestAcceptableTime: {latestAcceptableTime}");
 
         var validConnections = new List<TransportConnection>();
         var lateValidConnections = new List<TransportConnection>();
