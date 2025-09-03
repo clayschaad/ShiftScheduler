@@ -162,6 +162,28 @@ public class TransportConnectionCalculatorTests
         result.ArrivalTime.ShouldBe(T("2023-12-15T08:05:00"));
     }
     
+    [Fact]
+    public void FindBestConnectionEnhanced_WithMyCase_ShouldChooseBasedOnTiming()
+    {
+        var connections = new List<TransportConnection>
+        {
+            new(arrivalTime: "2025-09-01T11:41:00"),
+            new(arrivalTime: "2025-09-01T12:41:00"),
+            new(arrivalTime: "2025-09-01T13:41:00"),
+            new(arrivalTime: "2025-09-01T14:41:00"),
+            new(arrivalTime: "2025-09-01T15:41:00")
+        };
+        var shiftStartTime = T("2025-09-01T15:30:00");
+
+        var result = TransportConnectionCalculator.FindBestConnection(
+            connections, 
+            new ConnectionPickArgument(shiftStartTime, 10, 60, 15),
+            loggerMock.Object);
+
+        result.ShouldNotBeNull();
+        result.ArrivalTime.ShouldBe(T("2025-09-01T14:41:00"));
+    }
+    
     private DateTimeOffset T(string dateTimeString)
     {
         return DateTimeOffset.Parse(dateTimeString);
