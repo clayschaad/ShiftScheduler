@@ -28,6 +28,8 @@ namespace ShiftScheduler.Services
         private readonly string _configDirectory;
         private readonly string _shiftsFilePath;
         private readonly string _transportFilePath;
+        
+        TimeZoneInfo localTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich");
 
         public ConfigurationService(ApplicationConfiguration initialConfiguration)
         {
@@ -212,13 +214,15 @@ namespace ShiftScheduler.Services
             DateTimeOffset? afternoonStart = null;
             DateTimeOffset? afternoonEnd = null;
             
+            TimeSpan offset = localTimeZone.GetUtcOffset(DateTime.UtcNow);
+            
             if (!string.IsNullOrEmpty(shift.MorningTime))
             {
                 var times = shift.MorningTime.Split('-');
                 if (times.Length == 2)
                 {
-                    var start = $"{date:yyyy-MM-dd}T{times[0]}:00";
-                    var end = $"{date:yyyy-MM-dd}T{times[1]}:00";
+                    var start = $"{date:yyyy-MM-dd}T{times[0]}:00+{offset.Hours}:{offset.Minutes}";
+                    var end = $"{date:yyyy-MM-dd}T{times[1]}:00+{offset.Hours}:{offset.Minutes}";
                     morningStart = DateTimeOffset.Parse(start);
                     morningEnd = DateTimeOffset.Parse(end);
                 }
@@ -229,8 +233,8 @@ namespace ShiftScheduler.Services
                 var times = shift.AfternoonTime.Split('-');
                 if (times.Length == 2)
                 {
-                    var start = $"{date:yyyy-MM-dd}T{times[0]}:00";
-                    var end = $"{date:yyyy-MM-dd}T{times[1]}:00";
+                    var start = $"{date:yyyy-MM-dd}T{times[0]}:00+{offset.Hours}:{offset.Minutes}";
+                    var end = $"{date:yyyy-MM-dd}T{times[1]}:00+{offset.Hours}:{offset.Minutes}";
                     afternoonStart = DateTimeOffset.Parse(start);
                     afternoonEnd = DateTimeOffset.Parse(end);
                 }
