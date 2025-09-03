@@ -12,11 +12,14 @@ namespace ShiftScheduler.Services
         List<Shift> GetShifts();
         TransportConfiguration GetTransportConfiguration();
         
-        // Schedule persistence methods
         Task SaveScheduleAsync(int year, int month, Dictionary<DateTime, string> schedule);
         Task<Dictionary<DateTime, string>> LoadScheduleAsync(int year, int month);
         Task DeleteScheduleAsync(int year, int month);
+
+        ShiftTimes ParseShiftTimes(DateTime date, Shift shift);
     }
+
+    public record ShiftTimes(DateTimeOffset? MorningStart, DateTimeOffset? MorningEnd, DateTimeOffset? AfternoonStart, DateTimeOffset? AfternoonEnd);
 
     public class ConfigurationService : IConfigurationService
     {
@@ -201,7 +204,45 @@ namespace ShiftScheduler.Services
                 // Log error if needed, but don't throw
             }
         }
-        
+
+        public ShiftTimes ParseShiftTimes(DateTime date, Shift shift)
+        {
+            DateTimeOffset? morningStart = null;
+            DateTimeOffset? morningEnd = null;
+            DateTimeOffset? afternoonStart = null;
+            DateTimeOffset? afternoonEnd = null;
+            
+            if (!string.IsNullOrEmpty(shift.MorningTime))
+            {
+                var times = shift.MorningTime.Split('-');
+                if (times.Length == 2)
+                {
+                    var start = $"{date:yyyy-MM-dd}T{times[0]}:00";
+                    var end = $"{date:yyyy-MM-dd}T{times[1]}:00";
+                    morningStart = DateTimeOffset.Parse(start);
+                    morningEnd = DateTimeOffset.Parse(end);
+                }
+            }
+            
+            if (!string.IsNullOrEmpty(shift.AfternoonTime))
+            {
+                var times = shift.AfternoonTime.Split('-');
+                if (times.Length == 2)
+                {
+                    var start = $"{date:yyyy-MM-dd}T{times[0]}:00";
+                    var end = $"{date:yyyy-MM-dd}T{times[1]}:00";
+                    afternoonStart = DateTimeOffset.Parse(start);
+                    afternoonEnd = DateTimeOffset.Parse(end);
+                }
+            }
+            
+            return new ShiftTimes(
+                MorningStart: morningStart,
+                MorningEnd: morningEnd,
+                AfternoonStart: afternoonStart,
+                AfternoonEnd: afternoonEnd);
+        }
+
         private ApplicationConfiguration LoadConfigurationFromFiles(ApplicationConfiguration fallbackConfiguration)
         {
             try

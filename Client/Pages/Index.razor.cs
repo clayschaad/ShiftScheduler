@@ -15,7 +15,7 @@ namespace ShiftScheduler.Client.Pages
         private Dictionary<DateTime, string> SelectedSchedule { get; set; } = new();
         private Dictionary<DateTime, ShiftWithTransport> SelectedShiftsWithTransport { get; set; } = new();
 
-        private bool _isCurrentMonth = false;
+        private bool _isCurrentMonth = true;
         private bool _isLoadingTransport = false;
         private bool _isLoadingInitial = false;
         private bool _showConfigDialog = false;

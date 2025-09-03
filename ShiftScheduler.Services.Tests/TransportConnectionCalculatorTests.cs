@@ -9,7 +9,6 @@ public class TransportConnectionCalculatorTests
 {
     private readonly Mock<ILogger> loggerMock = new();
     
-    // Tests for new enhanced logic
     [Fact]
     public void FindBestConnectionEnhanced_WithGoodTimingConnection_ShouldReturnLatestValidConnection()
     {
