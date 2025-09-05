@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  shiftscheduler:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config:/app/config  # Persistent configuration
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    restart: unless-stopped
