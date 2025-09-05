@@ -109,7 +109,7 @@ public class GoogleCalendarService : IGoogleCalendarService
         var summary = $"{shift.Name} ({period})";
         var description = "";
 
-        if (transport != null && !string.IsNullOrEmpty(transport.DepartureTime))
+        if (transport != null)
         {
             var transportInfo = FormatTransportInfo(transport);
             description = $"Transport: {transportInfo}";
@@ -143,15 +143,8 @@ public class GoogleCalendarService : IGoogleCalendarService
 
     private static string FormatTransportInfo(TransportConnection transport)
     {
-        var departure = DateTime.TryParse(transport.DepartureTime, out var dep) ? dep.ToString("HH:mm") : transport.DepartureTime;
-        var arrival = DateTime.TryParse(transport.ArrivalTime, out var arr) ? arr.ToString("HH:mm") : transport.ArrivalTime;
-        
-        var mainJourney = transport.Sections?.FirstOrDefault()?.Journey;
-        if (mainJourney != null)
-        {
-            return $"{mainJourney.Category} {mainJourney.Number}: {departure} → {arrival}";
-        }
-        
+        var departure = transport.DepartureTime.ToString("HH:mm");
+        var arrival = transport.ArrivalTime.ToString("HH:mm");
         return $"{departure} → {arrival}";
     }
 
