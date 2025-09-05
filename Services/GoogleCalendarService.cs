@@ -5,6 +5,7 @@ using Google.Apis.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using ShiftScheduler.Shared;
+using System.Net;
 
 namespace ShiftScheduler.Services;
 
@@ -29,7 +30,7 @@ public class GoogleCalendarService : IGoogleCalendarService
     {
         var service = await CreateCalendarServiceAsync();
         var request = service.CalendarList.List();
-        var response = await request.ExecuteAsync();
+        var response = await ExecuteWithRetryAsync(async () => await request.ExecuteAsync());
         
         return response.Items?.Where(c => c.AccessRole == "owner" || c.AccessRole == "writer").ToList() ?? [];
     }
@@ -47,11 +48,11 @@ public class GoogleCalendarService : IGoogleCalendarService
         // Delete existing shift events in the date range
         await DeleteExistingShiftEventsAsync(service, calendarId, minDate, maxDate);
         
-        // Create new events for each shift
-        foreach (var shiftWithTransport in shifts)
-        {
-            await CreateShiftEventsAsync(service, calendarId, shiftWithTransport);
-        }
+        // Add a small delay to avoid rate limiting
+        await Task.Delay(500);
+        
+        // Create new events for each shift with rate limiting protection
+        await CreateShiftEventsWithRateLimitingAsync(service, calendarId, shifts);
     }
 
     private async Task DeleteExistingShiftEventsAsync(CalendarService service, string calendarId, DateTime startDate, DateTime endDate)
@@ -62,17 +63,38 @@ public class GoogleCalendarService : IGoogleCalendarService
         request.SingleEvents = true;
         request.OrderBy = EventsResource.ListRequest.OrderByEnum.StartTime;
         
-        var response = await request.ExecuteAsync();
+        var response = await ExecuteWithRetryAsync(async () => await request.ExecuteAsync());
         
         if (response.Items != null)
         {
             var shiftsToDelete = response.Items.Where(e => 
-                e.ExtendedProperties?.Private__?.ContainsKey("shiftSchedulerEvent") == true);
+                e.ExtendedProperties?.Private__?.ContainsKey("shiftSchedulerEvent") == true).ToList();
             
+            // Delete events with rate limiting protection
             foreach (var eventToDelete in shiftsToDelete)
             {
-                await service.Events.Delete(calendarId, eventToDelete.Id).ExecuteAsync();
+                await ExecuteWithRetryAsync(async () => 
+                {
+                    await service.Events.Delete(calendarId, eventToDelete.Id).ExecuteAsync();
+                    return true; // Return something for the generic method
+                });
+                
+                // Small delay between deletions to avoid rate limiting
+                if (shiftsToDelete.Count > 1)
+                    await Task.Delay(200);
             }
+        }
+    }
+
+    private async Task CreateShiftEventsWithRateLimitingAsync(CalendarService service, string calendarId, List<ShiftWithTransport> shifts)
+    {
+        foreach (var shiftWithTransport in shifts)
+        {
+            await CreateShiftEventsAsync(service, calendarId, shiftWithTransport);
+            
+            // Add delay between shift processing to avoid rate limiting
+            if (shifts.Count > 1)
+                await Task.Delay(300);
         }
     }
 
@@ -89,14 +111,14 @@ public class GoogleCalendarService : IGoogleCalendarService
         if (!string.IsNullOrEmpty(shift.MorningTime))
         {
             var morningEvent = CreateEventFromShift(shift, date, shift.MorningTime, "Morning", shiftWithTransport.MorningTransport);
-            await service.Events.Insert(morningEvent, calendarId).ExecuteAsync();
+            await ExecuteWithRetryAsync(async () => await service.Events.Insert(morningEvent, calendarId).ExecuteAsync());
         }
 
         // Create afternoon event if it exists
         if (!string.IsNullOrEmpty(shift.AfternoonTime))
         {
             var afternoonEvent = CreateEventFromShift(shift, date, shift.AfternoonTime, "Afternoon", shiftWithTransport.AfternoonTransport);
-            await service.Events.Insert(afternoonEvent, calendarId).ExecuteAsync();
+            await ExecuteWithRetryAsync(async () => await service.Events.Insert(afternoonEvent, calendarId).ExecuteAsync());
         }
     }
 
@@ -165,5 +187,39 @@ public class GoogleCalendarService : IGoogleCalendarService
             HttpClientInitializer = credential,
             ApplicationName = "ShiftScheduler"
         });
+    }
+
+    private static async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> operation, int maxRetries = 3)
+    {
+        var delay = TimeSpan.FromSeconds(1);
+        
+        for (var attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                return await operation();
+            }
+            catch (HttpRequestException ex) when (ex.Message.Contains("429") && attempt < maxRetries)
+            {
+                // Rate limit exceeded (HTTP 429), wait with exponential backoff
+                await Task.Delay(delay);
+                delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2); // Exponential backoff
+            }
+            catch (Exception ex) when (ex.Message.Contains("Rate Limit") && attempt < maxRetries)
+            {
+                // Another form of rate limit error
+                await Task.Delay(delay);
+                delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2); // Exponential backoff
+            }
+            catch (Exception ex) when (ex.Message.Contains("Forbidden") && ex.Message.Contains("quota") && attempt < maxRetries)
+            {
+                // Quota exceeded error
+                await Task.Delay(delay);
+                delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2); // Exponential backoff
+            }
+        }
+        
+        // If we get here, all retries failed, execute one more time to get the actual exception
+        return await operation();
     }
 }
