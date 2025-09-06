@@ -2,7 +2,6 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services
@@ -15,17 +14,6 @@ namespace ShiftScheduler.Services
         static PdfExportService()
         {
             QuestPDF.Settings.License = LicenseType.Community;
-            
-            // Note: QuestPDF 2025.7.0 automatically handles most fonts
-            // The main issue is that Docker containers often lack emoji fonts
-            // This will be addressed via the Dockerfile
-        }
-
-        private static string GetTextWithFallback(string textWithEmoji, string fallbackText)
-        {
-            // For PDF generation, we'll try emoji first but provide fallback text in parentheses
-            // This ensures the PDF is readable even when emoji fonts aren't available
-            return $"{textWithEmoji} ({fallbackText})";
         }
 
         public byte[] GenerateMonthlySchedulePdf(List<ShiftWithTransport> shiftsWithTransport)
@@ -141,9 +129,7 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var morningTime = shiftWithTransport?.Shift.MorningTime.Length > 0 
-                    ? GetTextWithFallback("🌅", "Morning") + $" {shiftWithTransport?.Shift.MorningTime}" 
-                    : "";
+                var morningTime = shiftWithTransport?.Shift.MorningTime.Length > 0 ? $"🌅 {shiftWithTransport?.Shift.MorningTime}" : "";
                 table.Cell().Element(CellStyleMiddle).Text(morningTime);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
@@ -155,9 +141,7 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var afternoonTime = shiftWithTransport?.Shift.AfternoonTime.Length > 0 
-                    ? GetTextWithFallback("🌆", "Afternoon") + $" {shiftWithTransport?.Shift.AfternoonTime}" 
-                    : "";
+                var afternoonTime = shiftWithTransport?.Shift.AfternoonTime.Length > 0 ? $"🌆 {shiftWithTransport?.Shift.AfternoonTime}" : "";
                 table.Cell().Element(CellStyleMiddle).Text(afternoonTime);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
@@ -211,7 +195,7 @@ namespace ShiftScheduler.Services
         {
             var departure = transport.DepartureTime.ToString("HH:mm");
             var arrival = transport.ArrivalTime.ToString("HH:mm");
-            return GetTextWithFallback("🚂", "Train") + $" {departure}→{arrival}";
+            return $"🚂 {departure}→{arrival}";
         }
 
         private static void RenderEmptyCell(TableDescriptor table)

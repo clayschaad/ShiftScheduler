@@ -163,8 +163,6 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
 ```
 
-**Note:** The Docker image includes emoji font support (Noto Color Emoji) to ensure proper rendering of emoji icons in PDF exports. If emojis don't display correctly in PDFs, ensure your Docker host has the necessary fonts installed.
-
 See [Docker Configuration Guide](DOCKER_CONFIG.md) for detailed deployment instructions.
 
 ## Usage

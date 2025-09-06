@@ -62,27 +62,3 @@ No migration needed - existing installations will automatically:
 ## File Format
 
 Configuration files use standard JSON format and can be edited directly if needed. Changes take effect after application restart.
-
-## PDF Export with Emoji Support
-
-The Docker image includes Noto Color Emoji fonts to ensure proper rendering of emoji characters (🚂, 🌅, 🌆) in PDF exports. This addresses issues where emojis appear as empty boxes or don't render at all in containerized environments.
-
-### Troubleshooting PDF Emoji Issues
-
-If emojis still don't display correctly in PDFs:
-
-1. Ensure the container has emoji fonts installed:
-   ```bash
-   docker exec <container-name> fc-list | grep -i emoji
-   ```
-
-2. The fallback text format includes both emoji and descriptive text:
-   - `🌅 (Morning) 06:00-14:00`
-   - `🌆 (Afternoon) 14:00-22:00`
-   - `🚂 (Train) 07:30→08:15`
-
-3. For custom deployments, install emoji fonts manually:
-   ```dockerfile
-   RUN apt-get update && apt-get install -y fonts-noto-color-emoji fontconfig \
-       && fc-cache -fv
-   ```
