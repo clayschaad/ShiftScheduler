@@ -25,12 +25,8 @@ namespace ShiftScheduler.Services
 
             if (apiResponse?.Connections.Count > 0)
             {
-                var allConnections = apiResponse.Connections.Select(MapToTransportConnection).ToList();
-
-                foreach (var connection in allConnections)
-                {
-                    logger.LogDebug($"Found connection {connection}");
-                }
+                var allConnections = apiResponse.Connections.Select(MapToTransportConnection).ToList();                
+                allConnections.ForEach(tc => logger.LogDebug($"Found connection {tc}"));
                 
                 var bestConnection = TransportConnectionCalculator.FindBestConnection(
                     allConnections, new ConnectionPickArgument(shiftStartTime, config.SafetyBufferMinutes, config.MaxEarlyArrivalMinutes, config.MaxLateArrivalMinutes), logger);

@@ -50,6 +50,7 @@ public static class TransportConnectionCalculator
             var bestValidConnection = validConnections.Last();
             if (bestValidConnection.ArrivalTime > earliestAcceptableTime)
             {
+                logger.LogDebug($"Found bestValidConnection {bestValidConnection}");
                 return bestValidConnection;
             }
         }
@@ -57,9 +58,11 @@ public static class TransportConnectionCalculator
         // If no connections arrive before latest arrival time, check if any arrive within acceptable late range
         if (lateValidConnections.Count > 0)
         {
+            logger.LogDebug($"Found lateValidConnection {lateValidConnections.First()}");
             return lateValidConnections.First();
         }
 
-        return validConnections.FirstOrDefault();
+        logger.LogDebug($"Use last valid connection {validConnections.LastOrDefault()}");
+        return validConnections.LastOrDefault();
     }
 }
