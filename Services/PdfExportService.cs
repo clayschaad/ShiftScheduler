@@ -14,7 +14,6 @@ namespace ShiftScheduler.Services
         static PdfExportService()
         {
             QuestPDF.Settings.License = LicenseType.Community;
-            QuestPDF.Settings.FontDiscoveryPaths.Add("fonts");
         }
 
         public byte[] GenerateMonthlySchedulePdf(List<ShiftWithTransport> shiftsWithTransport)
@@ -99,26 +98,20 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var shift = shiftWithTransport?.Shift;
-                
-                if (shift != null && shift.IsPngIcon)
+                if (shiftWithTransport != null)
                 {
-                    // For PNG icons, embed the image
-                    var iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", shift.Icon);
-                    if (File.Exists(iconPath))
+                    var shift = shiftWithTransport.Shift;
+                    if (shift.IsPngIcon) 
                     {
-                        table.Cell().Height(24).Element(CellStyleMiddle).Image(iconPath).FitArea();
+                        var iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", shift.Icon);
+                        if (File.Exists(iconPath))
+                        {
+                            table.Cell().Height(24).Element(CellStyleMiddle).Image(iconPath).FitArea();
+                            continue;
+                        }
                     }
-                    else
-                    {
-                        table.Cell().Element(CellStyleMiddle).Text(shift.Name);
-                    }
-                }
-                else
-                {
-                    // For text/emoji icons, render as text
-                    var icon = shift?.Icon ?? shift?.Name;
-                    table.Cell().Element(CellStyleMiddle).Text(icon);
+                    
+                    table.Cell().Element(CellStyleMiddle).Text(shift.Name);
                 }
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
@@ -130,7 +123,7 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var morningTime = shiftWithTransport?.Shift.MorningTime.Length > 0 ? $"🌅 {shiftWithTransport?.Shift.MorningTime}" : "";
+                var morningTime = shiftWithTransport?.Shift.MorningTime.Length > 0 ? $"{shiftWithTransport?.Shift.MorningTime}" : "";
                 table.Cell().Element(CellStyleMiddle).Text(morningTime);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
@@ -142,7 +135,7 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var afternoonTime = shiftWithTransport?.Shift.AfternoonTime.Length > 0 ? $"🌆 {shiftWithTransport?.Shift.AfternoonTime}" : "";
+                var afternoonTime = shiftWithTransport?.Shift.AfternoonTime.Length > 0 ? $"{shiftWithTransport?.Shift.AfternoonTime}" : "";
                 table.Cell().Element(CellStyleMiddle).Text(afternoonTime);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
@@ -155,7 +148,7 @@ namespace ShiftScheduler.Services
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
                 var transportInfo = GetTransportSummary(shiftWithTransport);
-                table.Cell().Element(CellStyleLast).Text(transportInfo).FontFamily("NotoEmoji-Regular");
+                table.Cell().Element(CellStyleLast).Text(transportInfo);
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
             {
@@ -196,7 +189,7 @@ namespace ShiftScheduler.Services
         {
             var departure = transport.DepartureTime.ToString("HH:mm");
             var arrival = transport.ArrivalTime.ToString("HH:mm");
-            return $"🚂 {departure}→{arrival}";
+            return $"{transport.Platform}: {departure}→{arrival}";
         }
 
         private static void RenderEmptyCell(TableDescriptor table)
