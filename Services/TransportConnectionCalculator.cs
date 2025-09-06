@@ -58,7 +58,7 @@ public static class TransportConnectionCalculator
         // If no connections arrive before latest arrival time, check if any arrive within acceptable late range
         if (lateValidConnections.Count > 0)
         {
-            logger.LogDebug($"Found lateValidConnection {lateValidConnections.First()}");
+            logger.LogDebug("Found lateValidConnection {LateValidConnection}", lateValidConnections.First());
             return lateValidConnections.First();
         }
 
