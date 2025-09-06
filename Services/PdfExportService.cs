@@ -14,10 +14,7 @@ namespace ShiftScheduler.Services
         static PdfExportService()
         {
             QuestPDF.Settings.License = LicenseType.Community;
-            //QuestPDF.Settings.FontDiscoveryPaths.Clear();
             QuestPDF.Settings.FontDiscoveryPaths.Add("fonts");
-            QuestPDF.Settings.FontDiscoveryPaths.Add("LatoFont");
-            QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = true;
         }
 
         public byte[] GenerateMonthlySchedulePdf(List<ShiftWithTransport> shiftsWithTransport)
@@ -158,7 +155,7 @@ namespace ShiftScheduler.Services
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
                 var transportInfo = GetTransportSummary(shiftWithTransport);
-                table.Cell().Element(CellStyleLast).Text(transportInfo);
+                table.Cell().Element(CellStyleLast).Text(transportInfo).FontFamily("NotoEmoji-Regular");
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
             {
