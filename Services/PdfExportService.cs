@@ -28,7 +28,7 @@ namespace ShiftScheduler.Services
             {
                 container.Page(page =>
                 {
-                    page.Margin(30);
+                    page.Margin(15);
                     page.Size(PageSizes.A4.Landscape());
                     page.DefaultTextStyle(x => x.FontSize(10));
 
@@ -98,26 +98,20 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var shift = shiftWithTransport?.Shift;
-                
-                if (shift != null && shift.IsPngIcon)
+                if (shiftWithTransport != null)
                 {
-                    // For PNG icons, embed the image
-                    var iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", shift.Icon);
-                    if (File.Exists(iconPath))
+                    var shift = shiftWithTransport.Shift;
+                    if (shift.IsPngIcon) 
                     {
-                        table.Cell().Height(24).Element(CellStyleMiddle).Image(iconPath).FitArea();
+                        var iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", shift.Icon);
+                        if (File.Exists(iconPath))
+                        {
+                            table.Cell().Height(24).Element(CellStyleMiddle).Image(iconPath).FitArea();
+                            continue;
+                        }
                     }
-                    else
-                    {
-                        table.Cell().Element(CellStyleMiddle).Text(shift.Name);
-                    }
-                }
-                else
-                {
-                    // For text/emoji icons, render as text
-                    var icon = shift?.Icon ?? shift?.Name;
-                    table.Cell().Element(CellStyleMiddle).Text(icon);
+                    
+                    table.Cell().Element(CellStyleMiddle).Text(shift.Name);
                 }
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
@@ -129,8 +123,14 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var morningTime = shiftWithTransport?.Shift.MorningTime.Length > 0 ? $"🌅 {shiftWithTransport?.Shift.MorningTime}" : "";
-                table.Cell().Element(CellStyleMiddle).Text(morningTime);
+                if (!string.IsNullOrWhiteSpace(shiftWithTransport?.Shift.MorningTime)) 
+                {
+                    table.Cell().Element(CellStyleTimes).Text($"        {shiftWithTransport.Shift.MorningTime}");
+                }
+                else
+                {
+                    table.Cell().Element(CellStyleMiddle).Text("");
+                }
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
             {
@@ -141,8 +141,14 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var afternoonTime = shiftWithTransport?.Shift.AfternoonTime.Length > 0 ? $"🌆 {shiftWithTransport?.Shift.AfternoonTime}" : "";
-                table.Cell().Element(CellStyleMiddle).Text(afternoonTime);
+                if (!string.IsNullOrWhiteSpace(shiftWithTransport?.Shift.AfternoonTime)) 
+                {
+                    table.Cell().Element(CellStyleTimes).Text($"        {shiftWithTransport.Shift.AfternoonTime}");
+                }
+                else
+                {
+                    table.Cell().Element(CellStyleMiddle).Text("");
+                }
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
             {
@@ -153,8 +159,14 @@ namespace ShiftScheduler.Services
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
-                var transportInfo = GetTransportSummary(shiftWithTransport);
-                table.Cell().Element(CellStyleLast).Text(transportInfo);
+                var transportSummary = GetTransportSummary(shiftWithTransport);
+                if (!string.IsNullOrWhiteSpace(transportSummary))
+                {
+                    table.Cell().Element(CellStyleTransport).Text(transportSummary);
+                }
+                else {
+                    table.Cell().Element(CellStyleLast).Text("");
+                }
             }
             foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
             {
@@ -172,7 +184,7 @@ namespace ShiftScheduler.Services
 
         private static string GetTransportSummary(ShiftWithTransport? shiftWithTransport)
         {
-            if (shiftWithTransport == null) return "-";
+            if (shiftWithTransport == null) return "";
 
             var transportLines = new List<string>();
 
@@ -195,7 +207,7 @@ namespace ShiftScheduler.Services
         {
             var departure = transport.DepartureTime.ToString("HH:mm");
             var arrival = transport.ArrivalTime.ToString("HH:mm");
-            return $"🚂 {departure}→{arrival}";
+            return $"   {transport.Platform}: {departure} → {arrival}";
         }
 
         private static void RenderEmptyCell(TableDescriptor table)
@@ -224,6 +236,32 @@ namespace ShiftScheduler.Services
                 .BorderColor(borderColor)
                 .AlignCenter()
                 .AlignMiddle();
+        }
+        
+        private static IContainer CellStyleTimes(IContainer container)
+        {
+            return container
+                .Padding(0)
+                .BorderLeft(boarderWidth)
+                .BorderRight(boarderWidth)
+                .BorderColor(borderColor)
+                .AlignCenter()
+                .AlignMiddle()
+                .Width(37, Unit.Millimetre)
+                .Background(Color.FromHex("#c7ffd6"));
+        }
+        
+        private static IContainer CellStyleTransport(IContainer container)
+        {
+            return container
+                .Padding(0)
+                .BorderLeft(boarderWidth)
+                .BorderBottom(boarderWidth)
+                .BorderRight(boarderWidth)
+                .BorderColor(borderColor)
+                .AlignCenter()
+                .AlignMiddle().Width(37, Unit.Millimetre)
+                .Background(Color.FromHex("#bdccff"));
         }
         
         private static IContainer CellStyleLast(IContainer container)
