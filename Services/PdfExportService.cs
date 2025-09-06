@@ -17,6 +17,7 @@ namespace ShiftScheduler.Services
             //QuestPDF.Settings.FontDiscoveryPaths.Clear();
             QuestPDF.Settings.FontDiscoveryPaths.Add("fonts");
             QuestPDF.Settings.FontDiscoveryPaths.Add("LatoFont");
+            QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = true;
         }
 
         public byte[] GenerateMonthlySchedulePdf(List<ShiftWithTransport> shiftsWithTransport)
