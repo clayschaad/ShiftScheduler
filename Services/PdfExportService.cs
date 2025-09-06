@@ -14,6 +14,7 @@ namespace ShiftScheduler.Services
         static PdfExportService()
         {
             QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.FontDiscoveryPaths.Clear();
             QuestPDF.Settings.FontDiscoveryPaths.Add("fonts");
         }
 
