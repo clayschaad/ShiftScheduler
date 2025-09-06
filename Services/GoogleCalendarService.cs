@@ -101,24 +101,22 @@ public class GoogleCalendarService(IHttpContextAccessor httpContextAccessor, ICo
         // Create morning event if it exists
         if (!string.IsNullOrEmpty(shift.MorningTime))
         {
-            var morningEvent = CreateEventFromShift(shift, date, shift.MorningTime, shiftWithTransport.MorningTransport);
+            var (startTime, endTime) = configurationService.GetZurichTime(DateOnly.FromDateTime(date), shift.MorningTime);
+            var morningEvent = CreateEventFromShift(shift, startTime, endTime, shiftWithTransport.MorningTransport);
             await ExecuteWithRetryAsync(async () => await service.Events.Insert(morningEvent, calendarId).ExecuteAsync());
         }
 
         // Create afternoon event if it exists
         if (!string.IsNullOrEmpty(shift.AfternoonTime))
         {
-            var afternoonEvent = CreateEventFromShift(shift, date, shift.AfternoonTime, shiftWithTransport.AfternoonTransport);
+            var (startTime, endTime) = configurationService.GetZurichTime(DateOnly.FromDateTime(date), shift.AfternoonTime);
+            var afternoonEvent = CreateEventFromShift(shift, startTime, endTime, shiftWithTransport.AfternoonTransport);
             await ExecuteWithRetryAsync(async () => await service.Events.Insert(afternoonEvent, calendarId).ExecuteAsync());
         }
     }
 
-    private Event CreateEventFromShift(Shift shift, DateTime date, string timeRange, TransportConnection? transport)
+    private Event CreateEventFromShift(Shift shift, DateTimeOffset startTime, DateTimeOffset endTime, TransportConnection? transport)
     {
-        var times = timeRange.Split('-');
-        var startTime = date.Add(TimeSpan.Parse(times[0]));
-        var endTime = date.Add(TimeSpan.Parse(times[1]));
-        
         var summary = $"{shift.Name}";
         var description = "";
 
@@ -134,13 +132,11 @@ public class GoogleCalendarService(IHttpContextAccessor httpContextAccessor, ICo
             Description = description,
             Start = new EventDateTime
             {
-                DateTimeDateTimeOffset = startTime,
-                TimeZone = configurationService.GetTimeZone()
+                DateTimeDateTimeOffset = startTime
             },
             End = new EventDateTime
             {
-                DateTimeDateTimeOffset = endTime,
-                TimeZone = configurationService.GetTimeZone()
+                DateTimeDateTimeOffset = endTime
             },
             ExtendedProperties = new Event.ExtendedPropertiesData
             {
