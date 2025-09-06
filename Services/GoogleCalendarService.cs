@@ -5,7 +5,6 @@ using Google.Apis.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using ShiftScheduler.Shared;
-using System.Net;
 
 namespace ShiftScheduler.Services;
 
@@ -15,17 +14,9 @@ public interface IGoogleCalendarService
     Task SyncShiftsToCalendarAsync(string calendarId, List<ShiftWithTransport> shifts);
 }
 
-public class GoogleCalendarService : IGoogleCalendarService
+public class GoogleCalendarService(IHttpContextAccessor httpContextAccessor, IConfigurationService configurationService)
+    : IGoogleCalendarService
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly IcsExportService _icsExportService;
-    
-    public GoogleCalendarService(IHttpContextAccessor httpContextAccessor, IcsExportService icsExportService)
-    {
-        _httpContextAccessor = httpContextAccessor;
-        _icsExportService = icsExportService;
-    }
-
     public async Task<List<CalendarListEntry>> GetCalendarsAsync()
     {
         var service = await CreateCalendarServiceAsync();
@@ -110,25 +101,25 @@ public class GoogleCalendarService : IGoogleCalendarService
         // Create morning event if it exists
         if (!string.IsNullOrEmpty(shift.MorningTime))
         {
-            var morningEvent = CreateEventFromShift(shift, date, shift.MorningTime, "Morning", shiftWithTransport.MorningTransport);
+            var morningEvent = CreateEventFromShift(shift, date, shift.MorningTime, shiftWithTransport.MorningTransport);
             await ExecuteWithRetryAsync(async () => await service.Events.Insert(morningEvent, calendarId).ExecuteAsync());
         }
 
         // Create afternoon event if it exists
         if (!string.IsNullOrEmpty(shift.AfternoonTime))
         {
-            var afternoonEvent = CreateEventFromShift(shift, date, shift.AfternoonTime, "Afternoon", shiftWithTransport.AfternoonTransport);
+            var afternoonEvent = CreateEventFromShift(shift, date, shift.AfternoonTime, shiftWithTransport.AfternoonTransport);
             await ExecuteWithRetryAsync(async () => await service.Events.Insert(afternoonEvent, calendarId).ExecuteAsync());
         }
     }
 
-    private static Event CreateEventFromShift(Shift shift, DateTime date, string timeRange, string period, TransportConnection? transport)
+    private Event CreateEventFromShift(Shift shift, DateTime date, string timeRange, TransportConnection? transport)
     {
         var times = timeRange.Split('-');
         var startTime = date.Add(TimeSpan.Parse(times[0]));
         var endTime = date.Add(TimeSpan.Parse(times[1]));
         
-        var summary = $"{shift.Name} ({period})";
+        var summary = $"{shift.Name}";
         var description = "";
 
         if (transport != null)
@@ -144,20 +135,19 @@ public class GoogleCalendarService : IGoogleCalendarService
             Start = new EventDateTime
             {
                 DateTimeDateTimeOffset = startTime,
-                TimeZone = "Europe/Zurich"
+                TimeZone = configurationService.GetTimeZone()
             },
             End = new EventDateTime
             {
                 DateTimeDateTimeOffset = endTime,
-                TimeZone = "Europe/Zurich"
+                TimeZone = configurationService.GetTimeZone()
             },
             ExtendedProperties = new Event.ExtendedPropertiesData
             {
                 Private__ = new Dictionary<string, string>
                 {
                     ["shiftSchedulerEvent"] = "true",
-                    ["shiftName"] = shift.Name,
-                    ["period"] = period.ToLower()
+                    ["shiftName"] = shift.Name
                 }
             }
         };
@@ -167,12 +157,12 @@ public class GoogleCalendarService : IGoogleCalendarService
     {
         var departure = transport.DepartureTime.ToString("HH:mm");
         var arrival = transport.ArrivalTime.ToString("HH:mm");
-        return $"{departure} → {arrival}";
+        return $"{transport.Platform}: {departure} → {arrival} ({transport.Duration.TotalMinutes} Minutes)";
     }
 
     private async Task<CalendarService> CreateCalendarServiceAsync()
     {
-        var httpContext = _httpContextAccessor.HttpContext ?? throw new InvalidOperationException("No HTTP context available");
+        var httpContext = httpContextAccessor.HttpContext ?? throw new InvalidOperationException("No HTTP context available");
         
         var accessToken = await httpContext.GetTokenAsync("access_token");
         if (string.IsNullOrEmpty(accessToken))

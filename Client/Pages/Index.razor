@@ -7,20 +7,10 @@
         <button class="btn month-btn @(_isCurrentMonth ? "" : "selected")" @onclick="SelectNextMonth" disabled="@_isLoadingInitial">@MonthAndYear.NextMonthName</button>
     </div>
     <div class="action-buttons">
-        <button class="btn export-btn" @onclick="ExportToIcs" disabled="@_isLoadingInitial"><span class="oi oi-calendar" aria-hidden="true"></span> Export to ICS</button>
-        <button class="btn export-btn" @onclick="SyncToGoogleCalendar" disabled="@(_isLoadingInitial || _isSyncing)">
-            @if (_isSyncing)
-            {
-                <span class="loading-spinner">⏳</span>
-            }
-            else
-            {
-                <span class="oi oi-cloud-upload" aria-hidden="true"></span>
-            }
-            Sync to Google Calendar
-        </button>
-        <button class="btn export-btn" @onclick="ExportToPdf" disabled="@_isLoadingInitial"><span class="oi oi-document" aria-hidden="true"></span>Export to PDF</button>
-        <button class="btn config-btn" @onclick="ShowConfiguration" disabled="@_isLoadingInitial"><span class="oi oi-cog" aria-hidden="true"></span> Configuration</button>
+        <button class="btn export-btn" @onclick="ExportToIcs" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-calendar" aria-hidden="true"></span> Export to ICS</button>
+        <button class="btn export-btn" @onclick="SyncToGoogleCalendar" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-cloud-upload" aria-hidden="true"></span> Sync to Google Calendar</button>
+        <button class="btn export-btn" @onclick="ExportToPdf" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-document" aria-hidden="true"></span>Export to PDF</button>
+        <button class="btn config-btn" @onclick="ShowConfiguration" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-cog" aria-hidden="true"></span> Configuration</button>
     </div>
 </div>
 
@@ -89,6 +79,15 @@
         <div class="loading-content">
             <div class="loading-spinner">⏳</div>
             <p>Loading shifts and transport data...</p>
+        </div>
+    </div>
+}
+else if (_isSyncing)
+{
+    <div class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner">⏳</div>
+            <p>Syncing with google calendar...</p>
         </div>
     </div>
 }

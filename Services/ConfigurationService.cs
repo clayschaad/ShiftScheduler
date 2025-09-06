@@ -5,6 +5,7 @@ namespace ShiftScheduler.Services
 {
     public interface IConfigurationService
     {
+        string GetTimeZone();
         ApplicationConfiguration GetConfiguration();
         void UpdateConfiguration(ApplicationConfiguration configuration);
         Task<string> ExportConfigurationAsync();
@@ -29,7 +30,12 @@ namespace ShiftScheduler.Services
         private readonly string _shiftsFilePath;
         private readonly string _transportFilePath;
 
-        readonly TimeZoneInfo localTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich");
+        private readonly TimeZoneInfo localTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich");
+
+        public string GetTimeZone()
+        {
+            return localTimeZone.Id;
+        }
 
         public ConfigurationService(ApplicationConfiguration initialConfiguration)
         {
