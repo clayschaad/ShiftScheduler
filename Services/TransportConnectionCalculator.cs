@@ -62,7 +62,7 @@ public static class TransportConnectionCalculator
             return lateValidConnections.First();
         }
 
-        logger.LogDebug($"Use last valid connection {validConnections.LastOrDefault()}");
+        logger.LogDebug("Use last valid connection {LastValidConnection}", validConnections.LastOrDefault());
         return validConnections.LastOrDefault();
     }
 }
