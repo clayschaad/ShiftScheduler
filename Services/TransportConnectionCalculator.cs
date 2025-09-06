@@ -50,7 +50,7 @@ public static class TransportConnectionCalculator
             var bestValidConnection = validConnections.Last();
             if (bestValidConnection.ArrivalTime > earliestAcceptableTime)
             {
-                logger.LogDebug($"Found bestValidConnection {bestValidConnection}");
+                logger.LogDebug("Found bestValidConnection {BestValidConnection}", bestValidConnection);
                 return bestValidConnection;
             }
         }
