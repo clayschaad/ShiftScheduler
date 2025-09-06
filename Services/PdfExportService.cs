@@ -32,7 +32,7 @@ namespace ShiftScheduler.Services
                 {
                     page.Margin(15);
                     page.Size(PageSizes.A4.Landscape());
-                    page.DefaultTextStyle(x => x.FontSize(10));
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
 
                     page.Header()
                         .Text($"Shift Schedule for {CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(month)} {year}")
