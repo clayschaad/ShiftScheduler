@@ -7,9 +7,10 @@
         <button class="btn month-btn @(_isCurrentMonth ? "" : "selected")" @onclick="SelectNextMonth" disabled="@_isLoadingInitial">@MonthAndYear.NextMonthName</button>
     </div>
     <div class="action-buttons">
-        <button class="btn export-btn" @onclick="ExportToIcs" disabled="@_isLoadingInitial"><span class="oi oi-calendar" aria-hidden="true"></span> Export to ICS</button>
-        <button class="btn export-btn" @onclick="ExportToPdf" disabled="@_isLoadingInitial"><span class="oi oi-document" aria-hidden="true"></span>Export to PDF</button>
-        <button class="btn config-btn" @onclick="ShowConfiguration" disabled="@_isLoadingInitial"><span class="oi oi-cog" aria-hidden="true"></span> Configuration</button>
+        <button class="btn export-btn" @onclick="ExportToIcs" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-calendar" aria-hidden="true"></span> Export to ICS</button>
+        <button class="btn export-btn" @onclick="SyncToGoogleCalendar" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-cloud-upload" aria-hidden="true"></span> Sync to Google Calendar</button>
+        <button class="btn export-btn" @onclick="ExportToPdf" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-document" aria-hidden="true"></span>Export to PDF</button>
+        <button class="btn config-btn" @onclick="ShowConfiguration" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-cog" aria-hidden="true"></span> Configuration</button>
     </div>
 </div>
 
@@ -31,12 +32,62 @@
     </div>
 }
 
+@if (_showCalendarSelector)
+{
+    <div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Google Calendar</h5>
+                    <button type="button" class="btn-close" @onclick="CloseCalendarSelector"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_availableCalendars.Count == 0)
+                    {
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading calendars...</span>
+                            </div>
+                        </div>
+                        <p class="text-center mt-2">Loading your calendars...</p>
+                    }
+                    else
+                    {
+                        <p>Choose which calendar to sync your shifts to:</p>
+                        <div class="list-group">
+                            @foreach (var calendar in _availableCalendars)
+                            {
+                                <button type="button" class="list-group-item list-group-item-action" 
+                                        @onclick="() => SelectCalendarAndSync(calendar.Id)">
+                                    @calendar.Summary
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseCalendarSelector">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @if (_isLoadingInitial)
 {
     <div class="loading-overlay">
         <div class="loading-content">
             <div class="loading-spinner">⏳</div>
             <p>Loading shifts and transport data...</p>
+        </div>
+    </div>
+}
+else if (_isSyncing)
+{
+    <div class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner">⏳</div>
+            <p>Syncing with google calendar...</p>
         </div>
     </div>
 }

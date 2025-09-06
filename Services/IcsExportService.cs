@@ -23,7 +23,7 @@ namespace ShiftScheduler.Services
                 if (!string.IsNullOrEmpty(shift.MorningTime))
                 {
                     var times = shift.MorningTime.Split('-');
-                    var summary = $"{shift.Name} (Morning)";
+                    var summary = $"{shift.Name}";
                     var description = "";
 
                     if (shiftWithTransport.MorningTransport != null)
@@ -44,7 +44,7 @@ namespace ShiftScheduler.Services
                 if (!string.IsNullOrEmpty(shift.AfternoonTime))
                 {
                     var times = shift.AfternoonTime.Split('-');
-                    var summary = $"{shift.Name} (Afternoon)";
+                    var summary = $"{shift.Name}";
                     var description = "";
 
                     if (shiftWithTransport.AfternoonTransport != null)

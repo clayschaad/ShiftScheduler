@@ -14,17 +14,20 @@ namespace ShiftScheduler.Server.Controllers
         private readonly PdfExportService _pdfExportService;
         private readonly ITransportService _transportService;
         private readonly IConfigurationService _configurationService;
+        private readonly IGoogleCalendarService _googleCalendarService;
 
         public ShiftController(
             IcsExportService icsService, 
             PdfExportService pdfExportService, 
             ITransportService transportService,
-            IConfigurationService configurationService)
+            IConfigurationService configurationService,
+            IGoogleCalendarService googleCalendarService)
         {
             _icsService = icsService;
             _pdfExportService = pdfExportService;
             _transportService = transportService;
             _configurationService = configurationService;
+            _googleCalendarService = googleCalendarService;
         }
 
         [HttpGet("shifts")]
@@ -148,6 +151,34 @@ namespace ShiftScheduler.Server.Controllers
                 return StatusCode(500, $"Error deleting schedule: {ex.Message}");
             }
         }
+
+        [HttpGet("google_calendars")]
+        public async Task<IActionResult> GetGoogleCalendars()
+        {
+            try
+            {
+                var calendars = await _googleCalendarService.GetCalendarsAsync();
+                return Ok(calendars.Select(c => new { Id = c.Id, Summary = c.Summary }));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error retrieving calendars: {ex.Message}");
+            }
+        }
+
+        [HttpPost("sync_to_google_calendar")]
+        public async Task<IActionResult> SyncToGoogleCalendar([FromBody] SyncToGoogleCalendarRequest request)
+        {
+            try
+            {
+                await _googleCalendarService.SyncShiftsToCalendarAsync(request.CalendarId, request.ShiftsWithTransport);
+                return Ok(new { message = "Shifts synced to Google Calendar successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error syncing to Google Calendar: {ex.Message}");
+            }
+        }
     }
 
     public class ShiftTransportRequest
@@ -161,5 +192,11 @@ namespace ShiftScheduler.Server.Controllers
         public int Year { get; set; }
         public int Month { get; set; }
         public Dictionary<DateTime, string> Schedule { get; set; } = new();
+    }
+
+    public class SyncToGoogleCalendarRequest
+    {
+        public string CalendarId { get; set; } = string.Empty;
+        public List<ShiftWithTransport> ShiftsWithTransport { get; set; } = [];
     }
 }

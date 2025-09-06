@@ -19,8 +19,11 @@ namespace ShiftScheduler.Client.Pages
         private bool _isLoadingTransport = false;
         private bool _isLoadingInitial = false;
         private bool _showConfigDialog = false;
+        private bool _isSyncing = false;
+        private bool _showCalendarSelector = false;
         private string _errorMessage = string.Empty;
         private string _successMessage = string.Empty;
+        private List<GoogleCalendar> _availableCalendars = new();
 
         private MonthAndYear SelectedDate => _isCurrentMonth ? MonthAndYear.Current() : MonthAndYear.Next();
 
@@ -159,6 +162,104 @@ namespace ShiftScheduler.Client.Pages
                 _errorMessage = $"Error exporting PDF file: {ex.Message}";
             }
             
+            StateHasChanged();
+        }
+
+        private async Task SyncToGoogleCalendar()
+        {
+            try
+            {
+                _errorMessage = string.Empty;
+                _successMessage = string.Empty;
+                _isSyncing = true;
+                StateHasChanged();
+
+                // Get available calendars
+                var response = await HttpClient.GetAsync("api/shift/google_calendars");
+                if (response.IsSuccessStatusCode)
+                {
+                    _availableCalendars = await response.Content.ReadFromJsonAsync<List<GoogleCalendar>>() ?? new();
+                    
+                    if (_availableCalendars.Count == 1)
+                    {
+                        // If only one calendar, sync directly
+                        await PerformCalendarSync(_availableCalendars[0].Id);
+                    }
+                    else if (_availableCalendars.Count > 1)
+                    {
+                        // Show calendar selector
+                        _showCalendarSelector = true;
+                    }
+                    else
+                    {
+                        _errorMessage = "No writable calendars found in your Google account.";
+                    }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _errorMessage = $"Failed to retrieve calendars: {response.StatusCode}. {errorContent}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"Error accessing Google Calendar: {ex.Message}";
+            }
+            finally
+            {
+                _isSyncing = false;
+                StateHasChanged();
+            }
+        }
+
+        private async Task SelectCalendarAndSync(string calendarId)
+        {
+            _showCalendarSelector = false;
+            await PerformCalendarSync(calendarId);
+        }
+
+        private async Task PerformCalendarSync(string calendarId)
+        {
+            try
+            {
+                _isSyncing = true;
+                StateHasChanged();
+
+                var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
+                var request = new
+                {
+                    CalendarId = calendarId,
+                    ShiftsWithTransport = shiftsWithTransportList
+                };
+
+                var response = await HttpClient.PostAsJsonAsync("api/shift/sync_to_google_calendar", request);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<dynamic>();
+                    _successMessage = "Shifts synced to Google Calendar successfully!";
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _errorMessage = $"Failed to sync to Google Calendar: {response.StatusCode}. {errorContent}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = $"Error syncing to Google Calendar: {ex.Message}";
+            }
+            finally
+            {
+                _isSyncing = false;
+                StateHasChanged();
+            }
+        }
+
+        private void CloseCalendarSelector()
+        {
+            _showCalendarSelector = false;
+            _availableCalendars.Clear();
             StateHasChanged();
         }
 

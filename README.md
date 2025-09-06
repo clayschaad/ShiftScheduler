@@ -23,7 +23,11 @@ Perfect for individuals or small teams who need to organize shift work, track sc
 
 ### 🔄 **Export Capabilities**
 - **ICS Export**: Import schedules directly into Google Calendar, Outlook, or any calendar application
-- **PDF Export**: Generate printable shift schedules with professional formatting
+- **PDF Export**: Generate printable shift schedules with professional formatting  
+- **Google Calendar Sync**: Direct synchronization with Google Calendar (NEW!)
+  - Automatic calendar selection for multiple calendars
+  - Smart event management (updates existing app-created events)
+  - Respects existing calendar events from other sources
 - One-click export functionality
 
 ### 🚆 **Transport Integration**
@@ -175,6 +179,10 @@ See [Docker Configuration Guide](DOCKER_CONFIG.md) for detailed deployment instr
 
 ### Exporting Schedules
 - **ICS Export**: Click "Export to ICS" to download a calendar file compatible with all major calendar applications
+- **Google Calendar Sync**: Click "Sync to Google Calendar" to directly sync shifts to your Google Calendar
+  - If you have multiple calendars, choose which one to sync to
+  - Existing shift events will be updated automatically
+  - Other calendar events remain untouched
 - **PDF Export**: Click "Export to PDF" to generate a printable schedule document
 
 ### Managing Configuration
