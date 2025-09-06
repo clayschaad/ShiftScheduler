@@ -7,13 +7,7 @@ public record ConnectionPickArgument(
     DateTimeOffset ShiftStartTime,
     int SafetyBufferMinutes,
     int MaxEarlyArrivalMinutes,
-    int MaxLateArrivalMinutes)
-{
-    public override string ToString()
-    {
-        return $"ShiftStartTime: {ShiftStartTime}, SafetyBufferMinutes: {SafetyBufferMinutes}, MaxEarlyArrivalMinutes{MaxEarlyArrivalMinutes}, MaxLateArrivalMinutes:{MaxLateArrivalMinutes}";
-    }
-}
+    int MaxLateArrivalMinutes);
 
 public static class TransportConnectionCalculator
 {
@@ -24,10 +18,13 @@ public static class TransportConnectionCalculator
         var earliestAcceptableTime = args.ShiftStartTime.AddMinutes(-args.MaxEarlyArrivalMinutes);
         var latestAcceptableTime = args.ShiftStartTime.AddMinutes(args.MaxLateArrivalMinutes);
         
-        logger.LogDebug(args.ToString());
-        logger.LogDebug($"latestArrivalTime: {latestArrivalTime}");
-        logger.LogDebug($"earliestAcceptableTime: {earliestAcceptableTime}");
-        logger.LogDebug($"latestAcceptableTime: {latestAcceptableTime}");
+        logger.LogDebug("ShiftStartTime: {ShiftStartTime}", args.ShiftStartTime);
+        logger.LogDebug("SafetyBufferMinutes: {SafetyBufferMinutes}", args.SafetyBufferMinutes);
+        logger.LogDebug("MaxEarlyArrivalMinutes: {MaxEarlyArrivalMinutes}", args.MaxEarlyArrivalMinutes);
+        logger.LogDebug("MaxLateArrivalMinutes: {MaxLateArrivalMinutes}", args.MaxLateArrivalMinutes);
+        logger.LogDebug("latestArrivalTime: {LatestArrivalTime}", latestArrivalTime);
+        logger.LogDebug("earliestAcceptableTime: {EarliestAcceptableTime}", earliestAcceptableTime);
+        logger.LogDebug("latestAcceptableTime: {LatestAcceptableTime}", latestAcceptableTime);
 
         var validConnections = new List<TransportConnection>();
         var lateValidConnections = new List<TransportConnection>();
@@ -50,6 +47,7 @@ public static class TransportConnectionCalculator
             var bestValidConnection = validConnections.Last();
             if (bestValidConnection.ArrivalTime > earliestAcceptableTime)
             {
+                logger.LogDebug("Found bestValidConnection {BestValidConnection}", bestValidConnection);
                 return bestValidConnection;
             }
         }
@@ -57,9 +55,11 @@ public static class TransportConnectionCalculator
         // If no connections arrive before latest arrival time, check if any arrive within acceptable late range
         if (lateValidConnections.Count > 0)
         {
+            logger.LogDebug("Found lateValidConnection {LateValidConnection}", lateValidConnections.First());
             return lateValidConnections.First();
         }
 
-        return validConnections.FirstOrDefault();
+        logger.LogDebug("Use last valid connection {LastValidConnection}", validConnections.LastOrDefault());
+        return validConnections.LastOrDefault();
     }
 }
