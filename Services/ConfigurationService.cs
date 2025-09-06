@@ -5,7 +5,7 @@ namespace ShiftScheduler.Services
 {
     public interface IConfigurationService
     {
-        string GetTimeZone();
+        (DateTimeOffset StartTime, DateTimeOffset EndTime) GetZurichTime(DateOnly date, string timeRange);
         ApplicationConfiguration GetConfiguration();
         void UpdateConfiguration(ApplicationConfiguration configuration);
         Task<string> ExportConfigurationAsync();
@@ -32,9 +32,14 @@ namespace ShiftScheduler.Services
 
         private readonly TimeZoneInfo localTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich");
 
-        public string GetTimeZone()
+        public (DateTimeOffset StartTime, DateTimeOffset EndTime) GetZurichTime(DateOnly date, string timeRange)
         {
-            return localTimeZone.Id;
+            var times = timeRange.Split('-'); ;
+            var startTime = TimeOnly.Parse(times[0]);
+            var endTime = TimeOnly.Parse(times[1]);
+            
+            TimeSpan offset = localTimeZone.GetUtcOffset(DateTime.UtcNow);
+            return (new DateTimeOffset(date, startTime, offset), new DateTimeOffset(date, endTime, offset));
         }
 
         public ConfigurationService(ApplicationConfiguration initialConfiguration)

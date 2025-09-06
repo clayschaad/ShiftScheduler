@@ -170,6 +170,13 @@ void Foo(params IReadOnlyList<string> values) => // actual implementation here.`
 - Use proper null checks in equality methods
 - Consider `ReferenceEquals` optimization for reference types
 
+### Date, Time and TimeZone
+- Don't use DateTime for a date with time, use DateTimeOffset instead
+- When only a date is needed, use DateOnly
+- When only a time is needed, use TimeOnly
+- Always use a specific local timezone for the DateTimeOffset
+- If nothing specified, use Europe/Zurich
+
 ### Architecture
 - Proper separation of concerns
 - Following established patterns in the codebase
