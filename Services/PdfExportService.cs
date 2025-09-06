@@ -14,6 +14,8 @@ namespace ShiftScheduler.Services
         static PdfExportService()
         {
             QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.FontDiscoveryPaths.Clear();
+            QuestPDF.Settings.FontDiscoveryPaths.Add("fonts");
         }
 
         public byte[] GenerateMonthlySchedulePdf(List<ShiftWithTransport> shiftsWithTransport)
@@ -28,7 +30,7 @@ namespace ShiftScheduler.Services
             {
                 container.Page(page =>
                 {
-                    page.Margin(30);
+                    page.Margin(15);
                     page.Size(PageSizes.A4.Landscape());
                     page.DefaultTextStyle(x => x.FontSize(10));
 
