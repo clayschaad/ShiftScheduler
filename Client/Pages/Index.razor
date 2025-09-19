@@ -111,8 +111,8 @@ else
                             <div class="tooltip-wrapper">
                                 <button class="shift-button @(SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name ? "selected" : "")"
                                         @onclick="() => SelectShift(day, shift.Name)"
-                                        disabled="@_isLoadingTransport">
-                                    @if (_isLoadingTransport && SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name)
+                                        disabled="@IsLoadingTransportForDay(day)">
+                                    @if (IsLoadingTransportForDay(day) && SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name)
                                     {
                                         <span class="loading-spinner">⏳</span>
                                     }
@@ -169,8 +169,8 @@ else
                         <div class="tooltip-wrapper">
                             <button class="shift-button @(SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name ? "selected" : "")"
                                     @onclick="() => SelectShift(day, shift.Name)"
-                                    disabled="@_isLoadingTransport">
-                                @if (_isLoadingTransport && SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name)
+                                    disabled="@IsLoadingTransportForDay(day)">
+                                @if (IsLoadingTransportForDay(day) && SelectedSchedule.ContainsKey(day) && SelectedSchedule[day] == shift.Name)
                                 {
                                     <span class="loading-spinner">⏳</span>
                                 }
@@ -217,3 +217,11 @@ else
 <ConfigurationDialog IsVisible="_showConfigDialog" 
                      OnClose="HideConfiguration" 
                      OnConfigurationChanged="OnConfigurationChanged" />
+
+@code {
+    // Helper method to check if a specific day is loading transport data
+    private bool IsLoadingTransportForDay(DateTime day)
+    {
+        return _isLoadingTransportPerDay.GetValueOrDefault(day, false);
+    }
+}
