@@ -310,6 +310,8 @@ namespace ShiftScheduler.Client.Pages
 
         private async Task ReloadTransportDataForSchedule()
         {
+            SelectedShiftsWithTransport.Clear();
+            
             foreach (var kvp in SelectedSchedule)
             {
                 var day = kvp.Key;
