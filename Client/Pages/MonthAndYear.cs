@@ -23,9 +23,11 @@ public record MonthAndYear(int Month, int Year)
     
     public IReadOnlyList<DateTime> DaysInMonth()
     {
-        return Enumerable.Range(1, DateTime.DaysInMonth(Year, Month))
+        var dayList = Enumerable.Range(1, DateTime.DaysInMonth(Year, Month))
             .Select(d => new DateTime(Year, Month, d))
             .ToList();
+
+       return EnsureStartsOnMonday(dayList);
     }
     
     public IReadOnlyDictionary<int, List<DateTime>> GetWeeksInMonth()
@@ -35,5 +37,24 @@ public record MonthAndYear(int Month, int Year)
             .GroupBy(d => CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(d, CalendarWeekRule.FirstDay, DayOfWeek.Monday))
             .ToDictionary(d => d.Key, d => d.ToList());
         return weeks;
+    }
+    
+    static List<DateTime> EnsureStartsOnMonday(List<DateTime> dates)
+    {
+        var firstDate = dates.First();
+        if (firstDate.DayOfWeek == DayOfWeek.Monday)
+            return dates;
+
+        var result = new List<DateTime>();
+        var prependDate = firstDate.AddDays(-1);
+        while (prependDate.DayOfWeek != DayOfWeek.Monday)
+        {
+            result.Insert(0, prependDate);
+            prependDate = prependDate.AddDays(-1);
+        }
+        result.Insert(0, prependDate);
+        result.AddRange(dates);
+
+        return result;
     }
 }
