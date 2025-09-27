@@ -82,19 +82,20 @@ namespace ShiftScheduler.Services
         {
             var weekDates = week.ToList();
             var dayInWeek = weekDates.Count;
+            var preRender = weekDates.First().DayOfWeek != DayOfWeek.Monday ? 7 - dayInWeek : 0;
+            var postRender = weekDates.First().DayOfWeek == DayOfWeek.Monday ? 7 - dayInWeek : 0;
             
             // Date
+            RenderEmptyCells(table, preRender);
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var dddd = weekDates.ElementAtOrDefault(day).ToString("dd.MM.yyyy (ddd)");
                 table.Cell().Element(CellStyleFirst).Text(dddd);
             }
-            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
-            {
-                RenderEmptyCell(table);
-            }
+            RenderEmptyCells(table, postRender);
             
             // Icon
+            RenderEmptyCells(table, preRender);
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
@@ -114,12 +115,10 @@ namespace ShiftScheduler.Services
                     table.Cell().Element(CellStyleMiddle).Text(shift.Name);
                 }
             }
-            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
-            {
-                RenderEmptyCell(table);
-            }
+            RenderEmptyCells(table, postRender);
 
             // Morning times
+            RenderEmptyCells(table, preRender);
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
@@ -132,12 +131,10 @@ namespace ShiftScheduler.Services
                     table.Cell().Element(CellStyleMiddle).Text("");
                 }
             }
-            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
-            {
-                RenderEmptyCell(table);
-            }
+            RenderEmptyCells(table, postRender);
 
             // Afternoon times
+            RenderEmptyCells(table, preRender);
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
@@ -150,12 +147,10 @@ namespace ShiftScheduler.Services
                     table.Cell().Element(CellStyleMiddle).Text("");
                 }
             }
-            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
-            {
-                RenderEmptyCell(table);
-            }
+            RenderEmptyCells(table, postRender);
             
             // Transport
+            RenderEmptyCells(table, preRender);
             foreach (var day in Enumerable.Range(0, dayInWeek))
             {
                 var shiftWithTransport = shiftsWithTransport.GetValueOrDefault(weekDates.ElementAtOrDefault(day));
@@ -168,18 +163,7 @@ namespace ShiftScheduler.Services
                     table.Cell().Element(CellStyleLast).Text("");
                 }
             }
-            foreach (var day in Enumerable.Range(dayInWeek, 7 - dayInWeek))
-            {
-                RenderEmptyCell(table);
-            }
-        }
-        
-        private static void RenderEmptyRow(TableDescriptor table)
-        {
-            foreach (var day in Enumerable.Range(0, 7))
-            {
-                RenderEmptyCell(table);
-            }
+            RenderEmptyCells(table, postRender);
         }
 
         private static string GetTransportSummary(ShiftWithTransport? shiftWithTransport)
@@ -208,6 +192,19 @@ namespace ShiftScheduler.Services
             var departure = transport.DepartureTime.ToString("HH:mm");
             var arrival = transport.ArrivalTime.ToString("HH:mm");
             return $"   {transport.Platform}: {departure} → {arrival}";
+        }
+        
+        private static void RenderEmptyRow(TableDescriptor table)
+        {
+            RenderEmptyCells(table, 7);
+        }
+
+        private static void RenderEmptyCells(TableDescriptor table, int cellCount)
+        {
+            foreach (var _ in Enumerable.Range(0, cellCount))
+            {
+                RenderEmptyCell(table);
+            }
         }
 
         private static void RenderEmptyCell(TableDescriptor table)
@@ -282,7 +279,8 @@ namespace ShiftScheduler.Services
                 .Padding(0)
                 .BorderLeft(0)
                 .BorderBottom(0)
-                .BorderRight(0);
+                .BorderRight(0)
+                .BorderTop(0);
         }
     }
 }
