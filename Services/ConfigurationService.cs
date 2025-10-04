@@ -38,7 +38,7 @@ namespace ShiftScheduler.Services
             var startTime = TimeOnly.Parse(times[0]);
             var endTime = TimeOnly.Parse(times[1]);
             
-            TimeSpan offset = localTimeZone.GetUtcOffset(DateTime.UtcNow);
+            TimeSpan offset = localTimeZone.GetUtcOffset(date.ToDateTime(startTime));
             return (new DateTimeOffset(date, startTime, offset), new DateTimeOffset(date, endTime, offset));
         }
 
@@ -225,7 +225,7 @@ namespace ShiftScheduler.Services
             DateTimeOffset? afternoonStart = null;
             DateTimeOffset? afternoonEnd = null;
             
-            TimeSpan offset = localTimeZone.GetUtcOffset(DateTime.UtcNow);
+            TimeSpan offset = localTimeZone.GetUtcOffset(date);
             
             if (!string.IsNullOrEmpty(shift.MorningTime))
             {
