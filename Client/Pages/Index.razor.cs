@@ -115,8 +115,8 @@ namespace ShiftScheduler.Client.Pages
                 _successMessage = string.Empty;
                 StateHasChanged();
 
-                var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
-                var response = await HttpClient.PostAsJsonAsync("api/shift/export_ics", shiftsWithTransportList);
+                var request = new { Year = SelectedDate.Year, Month = SelectedDate.Month };
+                var response = await HttpClient.PostAsJsonAsync("api/shift/export_ics", request);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -148,8 +148,8 @@ namespace ShiftScheduler.Client.Pages
                 _successMessage = string.Empty;
                 StateHasChanged();
 
-                var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
-                var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf", shiftsWithTransportList);
+                var request = new { Year = SelectedDate.Year, Month = SelectedDate.Month };
+                var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf", request);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -232,11 +232,11 @@ namespace ShiftScheduler.Client.Pages
                 _isSyncing = true;
                 StateHasChanged();
 
-                var shiftsWithTransportList = SelectedShiftsWithTransport.Values.ToList();
                 var request = new
                 {
                     CalendarId = calendarId,
-                    ShiftsWithTransport = shiftsWithTransportList
+                    Year = SelectedDate.Year,
+                    Month = SelectedDate.Month
                 };
 
                 var response = await HttpClient.PostAsJsonAsync("api/shift/sync_to_google_calendar", request);

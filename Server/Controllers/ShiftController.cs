@@ -97,15 +97,17 @@ namespace ShiftScheduler.Server.Controllers
         }
 
         [HttpPost("export_ics")]
-        public IActionResult ExportIcsWithTransport([FromBody] List<ShiftWithTransport> shiftsWithTransport)
+        public async Task<IActionResult> ExportIcs([FromBody] ExportRequest request)
         {
+            var shiftsWithTransport = await BuildShiftsWithTransportAsync(request.Year, request.Month);
             var ics = _icsService.GenerateIcs(shiftsWithTransport);
             return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar", "schedule.ics");
         }
 
         [HttpPost("export_pdf")]
-        public IActionResult ExportPdfWithTransport([FromBody] List<ShiftWithTransport> shiftsWithTransport)
+        public async Task<IActionResult> ExportPdf([FromBody] ExportRequest request)
         {
+            var shiftsWithTransport = await BuildShiftsWithTransportAsync(request.Year, request.Month);
             var pdf = _pdfExportService.GenerateMonthlySchedulePdf(shiftsWithTransport);
             return File(pdf, "application/pdf", "schedule.pdf");
         }
@@ -171,13 +173,69 @@ namespace ShiftScheduler.Server.Controllers
         {
             try
             {
-                await _googleCalendarService.SyncShiftsToCalendarAsync(request.CalendarId, request.ShiftsWithTransport);
+                var shiftsWithTransport = await BuildShiftsWithTransportAsync(request.Year, request.Month);
+                await _googleCalendarService.SyncShiftsToCalendarAsync(request.CalendarId, shiftsWithTransport);
                 return Ok(new { message = "Shifts synced to Google Calendar successfully!" });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error syncing to Google Calendar: {ex.Message}");
             }
+        }
+
+        private async Task<List<ShiftWithTransport>> BuildShiftsWithTransportAsync(int year, int month)
+        {
+            var schedule = await _configurationService.LoadScheduleAsync(year, month);
+            var shiftsWithTransport = new List<ShiftWithTransport>();
+            var transportConfig = _configurationService.GetTransportConfiguration();
+
+            foreach (var kvp in schedule)
+            {
+                var date = kvp.Key;
+                var shiftName = kvp.Value;
+                
+                var shift = _configurationService.GetShifts().FirstOrDefault(s => s.Name == shiftName);
+                if (shift == null)
+                    continue;
+
+                var shiftTimes = _configurationService.ParseShiftTimes(date, shift);
+                TransportConnection? morningTransport = null;
+                TransportConnection? afternoonTransport = null;
+
+                // Get transport for morning shift if it has morning time
+                if (!string.IsNullOrEmpty(shift.MorningTime) && shiftTimes.MorningStart.HasValue)
+                {
+                    morningTransport = await _transportService.GetConnectionAsync(shiftTimes.MorningStart.Value);
+                }
+
+                // Get transport for afternoon shift if it has afternoon time
+                if (!string.IsNullOrEmpty(shift.AfternoonTime))
+                {
+                    var shouldLoadAfternoonTransport = true;
+                    
+                    // If both morning and afternoon shifts exist, check break duration
+                    if (!string.IsNullOrEmpty(shift.MorningTime) && shiftTimes.MorningEnd.HasValue && shiftTimes.AfternoonStart.HasValue)
+                    {
+                        var breakDurationMinutes = (shiftTimes.AfternoonStart.Value - shiftTimes.MorningEnd.Value).TotalMinutes;
+                        shouldLoadAfternoonTransport = breakDurationMinutes >= transportConfig.MinBreakMinutes;
+                    }
+                    
+                    if (shouldLoadAfternoonTransport && shiftTimes.AfternoonStart.HasValue)
+                    {
+                        afternoonTransport = await _transportService.GetConnectionAsync(shiftTimes.AfternoonStart.Value);
+                    }
+                }
+
+                shiftsWithTransport.Add(new ShiftWithTransport
+                {
+                    Date = date,
+                    Shift = shift,
+                    MorningTransport = morningTransport,
+                    AfternoonTransport = afternoonTransport
+                });
+            }
+
+            return shiftsWithTransport;
         }
     }
 
@@ -194,9 +252,16 @@ namespace ShiftScheduler.Server.Controllers
         public Dictionary<DateTime, string> Schedule { get; set; } = new();
     }
 
+    public class ExportRequest
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+    }
+
     public class SyncToGoogleCalendarRequest
     {
         public string CalendarId { get; set; } = string.Empty;
-        public List<ShiftWithTransport> ShiftsWithTransport { get; set; } = [];
+        public int Year { get; set; }
+        public int Month { get; set; }
     }
 }
