@@ -14,9 +14,9 @@ namespace ShiftScheduler.Client.Pages
         private List<Shift> Shifts { get; set; } = new();
         private Dictionary<DateTime, string> SelectedSchedule { get; set; } = new();
         private Dictionary<DateTime, ShiftWithTransport> SelectedShiftsWithTransport { get; set; } = new();
+        private Dictionary<DateTime, bool> _isLoadingTransportPerDay { get; set; } = new();
 
         private bool _isCurrentMonth = true;
-        private bool _isLoadingTransport = false;
         private bool _isLoadingInitial = false;
         private bool _showConfigDialog = false;
         private bool _isSyncing = false;
@@ -31,12 +31,19 @@ namespace ShiftScheduler.Client.Pages
         {
             _isLoadingInitial = true;
             
+            // Load shifts first to show the calendar immediately
             Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
-
-            await LoadScheduleFromStorage();
             
+            // Show calendar immediately, don't wait for transport data
             _isLoadingInitial = false;
             StateHasChanged();
+            
+            // Load schedule and transport data in the background
+            _ = Task.Run(async () =>
+            {
+                await LoadScheduleFromStorage();
+                await InvokeAsync(StateHasChanged);
+            });
         }
 
         private async Task SelectCurrentMonth()
@@ -57,8 +64,8 @@ namespace ShiftScheduler.Client.Pages
         {
             SelectedSchedule[day] = shiftName;
             
-            // Get transport information for this shift and date
-            _isLoadingTransport = true;
+            // Get transport information for this shift and date - per day loading
+            _isLoadingTransportPerDay[day] = true;
             StateHasChanged();
             
             try
@@ -93,7 +100,7 @@ namespace ShiftScheduler.Client.Pages
             }
             finally
             {
-                _isLoadingTransport = false;
+                _isLoadingTransportPerDay[day] = false;
                 StateHasChanged();
             }
             
@@ -312,7 +319,18 @@ namespace ShiftScheduler.Client.Pages
         {
             SelectedShiftsWithTransport.Clear();
             
+            // Clear existing per-day loading states
+            _isLoadingTransportPerDay.Clear();
+            
+            // Mark all days as loading
             foreach (var kvp in SelectedSchedule)
+            {
+                _isLoadingTransportPerDay[kvp.Key] = true;
+            }
+            StateHasChanged();
+
+            // Create parallel tasks for all transport data requests
+            var transportTasks = SelectedSchedule.Select(async kvp =>
             {
                 var day = kvp.Key;
                 var shiftName = kvp.Value;
@@ -347,7 +365,16 @@ namespace ShiftScheduler.Client.Pages
                         };
                     }
                 }
-            }
+                finally
+                {
+                    // Mark this day as no longer loading
+                    _isLoadingTransportPerDay[day] = false;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }).ToArray();
+
+            // Wait for all transport data to load
+            await Task.WhenAll(transportTasks);
         }
 
         private async Task ResetSchedule()
