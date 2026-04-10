@@ -160,7 +160,7 @@ namespace ShiftScheduler.Server.Controllers
             try
             {
                 var calendars = await _googleCalendarService.GetCalendarsAsync();
-                return Ok(calendars.Select(c => new { Id = c.Id, Summary = c.Summary }));
+                return Ok(calendars);
             }
             catch (Exception ex)
             {
