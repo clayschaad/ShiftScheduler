@@ -8,14 +8,14 @@ using ShiftScheduler.Shared;
 
 namespace ShiftScheduler.Services;
 
-public interface IGoogleCalendarService
+public interface IOldGoogleCalendarService
 {
     Task<List<CalendarListEntry>> GetCalendarsAsync();
     Task SyncShiftsToCalendarAsync(string calendarId, List<ShiftWithTransport> shifts);
 }
 
 public class GoogleCalendarService(IHttpContextAccessor httpContextAccessor, IConfigurationService configurationService)
-    : IGoogleCalendarService
+    : IOldGoogleCalendarService
 {
     public async Task<List<CalendarListEntry>> GetCalendarsAsync()
     {
