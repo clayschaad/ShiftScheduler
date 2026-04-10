@@ -23,7 +23,7 @@ namespace ShiftScheduler.Client.Pages
         private bool _showCalendarSelector = false;
         private string _errorMessage = string.Empty;
         private string _successMessage = string.Empty;
-        private List<GoogleCalendar> _availableCalendars = new();
+        private List<CalendarInfo> _availableCalendars = new();
 
         private MonthAndYear SelectedDate => _isCurrentMonth ? MonthAndYear.Current() : MonthAndYear.Next();
 
@@ -185,7 +185,7 @@ namespace ShiftScheduler.Client.Pages
                 var response = await HttpClient.GetAsync("api/shift/google_calendars");
                 if (response.IsSuccessStatusCode)
                 {
-                    _availableCalendars = await response.Content.ReadFromJsonAsync<List<GoogleCalendar>>() ?? new();
+                    _availableCalendars = await response.Content.ReadFromJsonAsync<List<CalendarInfo>>() ?? new();
                     
                     if (_availableCalendars.Count == 1)
                     {
