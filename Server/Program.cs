@@ -30,6 +30,7 @@ builder.Services.AddSingleton<ITransportApiService, TransportApiService>();
 builder.Services.AddSingleton<ITransportService, TransportService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IGoogleCalendarService, GoogleCalendarService>();
+builder.Services.AddScoped<INextcloudCalendarService, NextcloudCalendarService>();
 
 // Configure authentication
 builder.Services.AddAuthentication(options =>
