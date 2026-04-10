@@ -141,9 +141,14 @@ namespace ShiftScheduler.Server.Controllers
         {
             try
             {
-                ICalendarService service = provider == "nextcloud"
-                    ? _nextcloudCalendarService
-                    : _googleCalendarService;
+                ICalendarService service = provider switch
+                {
+                    "google"    => (ICalendarService)_googleCalendarService,
+                    "nextcloud" => _nextcloudCalendarService,
+                    _           => null!
+                };
+                if (service is null)
+                    return BadRequest($"Unknown provider '{provider}'. Supported values: google, nextcloud.");
 
                 var calendars = await service.GetCalendarsAsync();
                 return Ok(calendars);
@@ -161,9 +166,14 @@ namespace ShiftScheduler.Server.Controllers
             {
                 var shiftsWithTransport = await BuildShiftsWithTransportAsync(request.Year, request.Month);
 
-                ICalendarService service = request.Provider == "nextcloud"
-                    ? _nextcloudCalendarService
-                    : _googleCalendarService;
+                ICalendarService service = request.Provider switch
+                {
+                    "google"    => (ICalendarService)_googleCalendarService,
+                    "nextcloud" => _nextcloudCalendarService,
+                    _           => null!
+                };
+                if (service is null)
+                    return BadRequest($"Unknown provider '{request.Provider}'. Supported values: google, nextcloud.");
 
                 await service.SyncShiftsToCalendarAsync(request.CalendarId, shiftsWithTransport);
                 return Ok(new { message = "Shifts synced successfully!" });
