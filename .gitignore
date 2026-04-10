@@ -63,3 +63,6 @@ nunit-*.xml
 # Configuration files (uncomment to avoid committing development configs)
 config/
 **/config/
+
+# Git worktrees
+.worktrees/
