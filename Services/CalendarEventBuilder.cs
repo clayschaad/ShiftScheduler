@@ -18,7 +18,7 @@ public static class CalendarEventBuilder
     {
         var departure = transport.DepartureTime.ToString("HH:mm");
         var arrival = transport.ArrivalTime.ToString("HH:mm");
-        return $"{transport.Platform}: {departure} → {arrival} ({transport.Duration.TotalMinutes} Minutes)";
+        return $"{transport.Platform}: {departure} → {arrival} ({(int)transport.Duration.TotalMinutes} Minutes)";
     }
 
     public static async Task<T> ExecuteWithRetryAsync<T>(Func<Task<T>> operation, int maxRetries = 3)
