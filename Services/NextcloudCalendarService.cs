@@ -209,7 +209,7 @@ public class NextcloudCalendarService(
         };
         vevent.Properties.Add(new Ical.Net.CalendarProperty("X-SHIFT-SCHEDULER", "TRUE"));
         calendar.Events.Add(vevent);
-        return new CalendarSerializer().SerializeToString(calendar);
+        return new CalendarSerializer().SerializeToString(calendar)!;
     }
 
     private static string SanitizeForUid(string name)
