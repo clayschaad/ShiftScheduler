@@ -162,7 +162,16 @@ public class NextcloudCalendarService(
             var date = shiftWithTransport.Date;
 
             if (string.IsNullOrEmpty(shift.MorningTime) && string.IsNullOrEmpty(shift.AfternoonTime))
+            {
+                var uid = $"shift-{SanitizeForUid(shift.Name)}-{date:yyyyMMdd}-allday";
+                var eventData = CalendarEventBuilder.BuildEventContent(shift, null);
+                var icsContent = BuildAllDayIcsContent(uid, eventData, DateOnly.FromDateTime(date));
+                var putRequest = CreateRequest(HttpMethod.Put, $"{calendarId}{Uri.EscapeDataString(uid)}.ics");
+                putRequest.Content = new StringContent(icsContent, Encoding.UTF8, "text/calendar");
+                (await client.SendAsync(putRequest)).EnsureSuccessStatusCode();
+                await Task.Delay(300);
                 continue;
+            }
 
             if (!string.IsNullOrEmpty(shift.MorningTime))
             {
@@ -192,6 +201,21 @@ public class NextcloudCalendarService(
                 await Task.Delay(300);
             }
         }
+    }
+
+    private static string BuildAllDayIcsContent(string uid, CalendarEventData eventData, DateOnly date)
+    {
+        var calendar = new Calendar();
+        var vevent = new CalendarEvent
+        {
+            Uid = uid,
+            Summary = eventData.Summary,
+            DtStart = new CalDateTime(date.Year, date.Month, date.Day),
+            DtEnd = new CalDateTime(date.AddDays(1).Year, date.AddDays(1).Month, date.AddDays(1).Day)
+        };
+        vevent.Properties.Add(new Ical.Net.CalendarProperty("X-SHIFT-SCHEDULER", "TRUE"));
+        calendar.Events.Add(vevent);
+        return new CalendarSerializer().SerializeToString(calendar)!;
     }
 
     private static string BuildIcsContent(string uid, CalendarEventData eventData, DateTimeOffset startTime, DateTimeOffset endTime)

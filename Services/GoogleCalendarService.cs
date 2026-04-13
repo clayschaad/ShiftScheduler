@@ -84,7 +84,12 @@ public class GoogleCalendarService(IHttpContextAccessor httpContextAccessor, ICo
         var date = shiftWithTransport.Date;
 
         if (string.IsNullOrEmpty(shift.MorningTime) && string.IsNullOrEmpty(shift.AfternoonTime))
+        {
+            var eventData = CalendarEventBuilder.BuildEventContent(shift, null);
+            var allDayEvent = CreateAllDayGoogleEvent(eventData, DateOnly.FromDateTime(date));
+            await CalendarEventBuilder.ExecuteWithRetryAsync(async () => await service.Events.Insert(allDayEvent, calendarId).ExecuteAsync());
             return;
+        }
 
         if (!string.IsNullOrEmpty(shift.MorningTime))
         {
@@ -101,6 +106,26 @@ public class GoogleCalendarService(IHttpContextAccessor httpContextAccessor, ICo
             var googleEvent = CreateGoogleEvent(eventData, startTime, endTime);
             await CalendarEventBuilder.ExecuteWithRetryAsync(async () => await service.Events.Insert(googleEvent, calendarId).ExecuteAsync());
         }
+    }
+
+    private static Event CreateAllDayGoogleEvent(CalendarEventData eventData, DateOnly date)
+    {
+        var dateStr = date.ToString("yyyy-MM-dd");
+        var nextDateStr = date.AddDays(1).ToString("yyyy-MM-dd");
+        return new Event
+        {
+            Summary = eventData.Summary,
+            Start = new EventDateTime { Date = dateStr },
+            End = new EventDateTime { Date = nextDateStr },
+            ExtendedProperties = new Event.ExtendedPropertiesData
+            {
+                Private__ = new Dictionary<string, string>
+                {
+                    ["shiftSchedulerEvent"] = "true",
+                    ["shiftName"] = eventData.Summary
+                }
+            }
+        };
     }
 
     private static Event CreateGoogleEvent(CalendarEventData eventData, DateTimeOffset startTime, DateTimeOffset endTime)
