@@ -110,7 +110,7 @@ public class NextcloudCalendarService(
         reportRequest.Headers.Add("Depth", "1");
         reportRequest.Content = new StringContent(body, Encoding.UTF8, "application/xml");
 
-        var client = httpClientFactory.CreateClient();
+        var client = httpClientFactory.CreateClient("nextcloud");
         var reportResponse = await client.SendAsync(reportRequest);
         reportResponse.EnsureSuccessStatusCode();
 
@@ -126,8 +126,7 @@ public class NextcloudCalendarService(
                 deleteResponse.StatusCode != System.Net.HttpStatusCode.NotFound)
                 deleteResponse.EnsureSuccessStatusCode();
 
-            if (eventUrls.Count > 1)
-                await Task.Delay(200);
+            await Task.Delay(300);
         }
     }
 
@@ -155,7 +154,7 @@ public class NextcloudCalendarService(
 
     private async Task CreateShiftEventsAsync(string calendarId, List<ShiftWithTransport> shifts)
     {
-        var client = httpClientFactory.CreateClient();
+        var client = httpClientFactory.CreateClient("nextcloud");
 
         foreach (var shiftWithTransport in shifts)
         {
@@ -176,6 +175,7 @@ public class NextcloudCalendarService(
                 var putRequest = CreateRequest(HttpMethod.Put, $"{calendarId}{Uri.EscapeDataString(uid)}.ics");
                 putRequest.Content = new StringContent(icsContent, Encoding.UTF8, "text/calendar");
                 (await client.SendAsync(putRequest)).EnsureSuccessStatusCode();
+                await Task.Delay(300);
             }
 
             if (!string.IsNullOrEmpty(shift.AfternoonTime))
@@ -189,10 +189,8 @@ public class NextcloudCalendarService(
                 var putRequest = CreateRequest(HttpMethod.Put, $"{calendarId}{Uri.EscapeDataString(uid)}.ics");
                 putRequest.Content = new StringContent(icsContent, Encoding.UTF8, "text/calendar");
                 (await client.SendAsync(putRequest)).EnsureSuccessStatusCode();
-            }
-
-            if (shifts.Count > 1)
                 await Task.Delay(300);
+            }
         }
     }
 

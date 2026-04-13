@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Http.Resilience;
+using Polly;
+using System.Net;
 using System.Security.Claims;
 using ShiftScheduler.Services;
 using ShiftScheduler.Shared;
@@ -24,6 +27,18 @@ builder.Services.AddSingleton(authorizedEmails);
 builder.Services.AddSingleton<IConfigurationService>(new ConfigurationService(appConfiguration));
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<TransportApiService>();
+builder.Services.AddHttpClient("nextcloud")
+    .AddResilienceHandler("nextcloud-retry", pipeline =>
+    {
+        pipeline.AddRetry(new HttpRetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            Delay = TimeSpan.FromSeconds(2),
+            BackoffType = DelayBackoffType.Exponential,
+            ShouldHandle = args => ValueTask.FromResult(
+                args.Outcome.Result?.StatusCode == HttpStatusCode.TooManyRequests)
+        });
+    });
 builder.Services.AddSingleton<IcsExportService>();
 builder.Services.AddSingleton<PdfExportService>();
 builder.Services.AddSingleton<ITransportApiService, TransportApiService>();
