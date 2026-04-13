@@ -9,6 +9,7 @@
     <div class="action-buttons">
         <button class="btn export-btn" @onclick="ExportToIcs" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-calendar" aria-hidden="true"></span> Export to ICS</button>
         <button class="btn export-btn" @onclick="SyncToGoogleCalendar" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-cloud-upload" aria-hidden="true"></span> Sync to Google Calendar</button>
+        <button class="btn export-btn" @onclick="SyncToNextcloud" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-cloud-upload" aria-hidden="true"></span> Sync to Nextcloud</button>
         <button class="btn export-btn" @onclick="ExportToPdf" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-document" aria-hidden="true"></span>Export to PDF</button>
         <button class="btn config-btn" @onclick="ShowConfiguration" disabled="@(_isLoadingInitial || _isSyncing)"><span class="oi oi-cog" aria-hidden="true"></span> Configuration</button>
     </div>
@@ -38,7 +39,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Select Google Calendar</h5>
+                    <h5 class="modal-title">Select @(_syncProvider == "nextcloud" ? "Nextcloud" : "Google") Calendar</h5>
                     <button type="button" class="btn-close" @onclick="CloseCalendarSelector"></button>
                 </div>
                 <div class="modal-body">
@@ -87,7 +88,7 @@ else if (_isSyncing)
     <div class="loading-overlay">
         <div class="loading-content">
             <div class="loading-spinner">⏳</div>
-            <p>Syncing with google calendar...</p>
+            <p>Syncing with @(_syncProvider == "nextcloud" ? "Nextcloud" : "Google Calendar")...</p>
         </div>
     </div>
 }
@@ -218,10 +219,3 @@ else
                      OnClose="HideConfiguration" 
                      OnConfigurationChanged="OnConfigurationChanged" />
 
-@code {
-    // Helper method to check if a specific day is loading transport data
-    private bool IsLoadingTransportForDay(DateTime day)
-    {
-        return _isLoadingTransportPerDay.GetValueOrDefault(day, false);
-    }
-}

@@ -15,19 +15,22 @@ namespace ShiftScheduler.Server.Controllers
         private readonly ITransportService _transportService;
         private readonly IConfigurationService _configurationService;
         private readonly IGoogleCalendarService _googleCalendarService;
+        private readonly INextcloudCalendarService _nextcloudCalendarService;
 
         public ShiftController(
-            IcsExportService icsService, 
-            PdfExportService pdfExportService, 
+            IcsExportService icsService,
+            PdfExportService pdfExportService,
             ITransportService transportService,
             IConfigurationService configurationService,
-            IGoogleCalendarService googleCalendarService)
+            IGoogleCalendarService googleCalendarService,
+            INextcloudCalendarService nextcloudCalendarService)
         {
             _icsService = icsService;
             _pdfExportService = pdfExportService;
             _transportService = transportService;
             _configurationService = configurationService;
             _googleCalendarService = googleCalendarService;
+            _nextcloudCalendarService = nextcloudCalendarService;
         }
 
         [HttpGet("shifts")]
@@ -41,59 +44,38 @@ namespace ShiftScheduler.Server.Controllers
         {
             var shift = _configurationService.GetShifts().FirstOrDefault(s => s.Name == request.ShiftName);
             if (shift == null)
-            {
                 return NotFound($"Shift '{request.ShiftName}' not found");
-            }
 
             var transportConfig = _configurationService.GetTransportConfiguration();
             TransportConnection? morningTransport = null;
             TransportConnection? afternoonTransport = null;
-            
+
             var shifTimes = _configurationService.ParseShiftTimes(request.Date, shift);
 
-            // Get transport for morning shift if it has morning time
-            if (!string.IsNullOrEmpty(shift.MorningTime))
-            {
-                if (shifTimes.MorningStart.HasValue)
-                {
-                    morningTransport = await _transportService.GetConnectionAsync(shifTimes.MorningStart.Value);
-                }
-            }
+            if (!string.IsNullOrEmpty(shift.MorningTime) && shifTimes.MorningStart.HasValue)
+                morningTransport = await _transportService.GetConnectionAsync(shifTimes.MorningStart.Value);
 
-            // Get transport for afternoon shift if it has afternoon time
-            // But only if the break between morning and afternoon is long enough
             if (!string.IsNullOrEmpty(shift.AfternoonTime))
             {
-                var shouldLoadAfternoonTransport = true;
-                
-                // If both morning and afternoon shifts exist, check break duration
-                if (!string.IsNullOrEmpty(shift.MorningTime) && !string.IsNullOrEmpty(shift.AfternoonTime))
+                var shouldLoad = true;
+
+                if (!string.IsNullOrEmpty(shift.MorningTime) && shifTimes.MorningEnd.HasValue && shifTimes.AfternoonStart.HasValue)
                 {
-                    if (shifTimes.MorningEnd.HasValue && shifTimes.AfternoonStart.HasValue)
-                    {
-                        var breakDurationMinutes = (shifTimes.AfternoonStart.Value - shifTimes.MorningEnd.Value).TotalMinutes;
-                        shouldLoadAfternoonTransport = breakDurationMinutes >= transportConfig.MinBreakMinutes;
-                    }
+                    var breakMinutes = (shifTimes.AfternoonStart.Value - shifTimes.MorningEnd.Value).TotalMinutes;
+                    shouldLoad = breakMinutes >= transportConfig.MinBreakMinutes;
                 }
-                
-                if (shouldLoadAfternoonTransport)
-                {
-                    if (shifTimes.AfternoonStart.HasValue)
-                    {
-                        afternoonTransport = await _transportService.GetConnectionAsync(shifTimes.AfternoonStart.Value);
-                    }
-                }
+
+                if (shouldLoad && shifTimes.AfternoonStart.HasValue)
+                    afternoonTransport = await _transportService.GetConnectionAsync(shifTimes.AfternoonStart.Value);
             }
 
-            var shiftWithTransport = new ShiftWithTransport
+            return Ok(new ShiftWithTransport
             {
                 Date = request.Date,
                 Shift = shift,
                 MorningTransport = morningTransport,
-                AfternoonTransport = afternoonTransport,
-            };
-
-            return Ok(shiftWithTransport);
+                AfternoonTransport = afternoonTransport
+            });
         }
 
         [HttpPost("export_ics")]
@@ -154,13 +136,22 @@ namespace ShiftScheduler.Server.Controllers
             }
         }
 
-        [HttpGet("google_calendars")]
-        public async Task<IActionResult> GetGoogleCalendars()
+        [HttpGet("calendars")]
+        public async Task<IActionResult> GetCalendars([FromQuery] string provider)
         {
             try
             {
-                var calendars = await _googleCalendarService.GetCalendarsAsync();
-                return Ok(calendars.Select(c => new { Id = c.Id, Summary = c.Summary }));
+                ICalendarService service = provider switch
+                {
+                    "google"    => (ICalendarService)_googleCalendarService,
+                    "nextcloud" => _nextcloudCalendarService,
+                    _           => null!
+                };
+                if (service is null)
+                    return BadRequest($"Unknown provider '{provider}'. Supported values: google, nextcloud.");
+
+                var calendars = await service.GetCalendarsAsync();
+                return Ok(calendars);
             }
             catch (Exception ex)
             {
@@ -168,18 +159,28 @@ namespace ShiftScheduler.Server.Controllers
             }
         }
 
-        [HttpPost("sync_to_google_calendar")]
-        public async Task<IActionResult> SyncToGoogleCalendar([FromBody] SyncToGoogleCalendarRequest request)
+        [HttpPost("sync_to_calendar")]
+        public async Task<IActionResult> SyncToCalendar([FromBody] SyncToCalendarRequest request)
         {
             try
             {
                 var shiftsWithTransport = await BuildShiftsWithTransportAsync(request.Year, request.Month);
-                await _googleCalendarService.SyncShiftsToCalendarAsync(request.CalendarId, shiftsWithTransport);
-                return Ok(new { message = "Shifts synced to Google Calendar successfully!" });
+
+                ICalendarService service = request.Provider switch
+                {
+                    "google"    => (ICalendarService)_googleCalendarService,
+                    "nextcloud" => _nextcloudCalendarService,
+                    _           => null!
+                };
+                if (service is null)
+                    return BadRequest($"Unknown provider '{request.Provider}'. Supported values: google, nextcloud.");
+
+                await service.SyncShiftsToCalendarAsync(request.CalendarId, shiftsWithTransport);
+                return Ok(new { message = "Shifts synced successfully!" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error syncing to Google Calendar: {ex.Message}");
+                return StatusCode(500, $"Error syncing to calendar: {ex.Message}");
             }
         }
 
@@ -193,37 +194,29 @@ namespace ShiftScheduler.Server.Controllers
             {
                 var date = kvp.Key;
                 var shiftName = kvp.Value;
-                
+
                 var shift = _configurationService.GetShifts().FirstOrDefault(s => s.Name == shiftName);
-                if (shift == null)
-                    continue;
+                if (shift == null) continue;
 
                 var shiftTimes = _configurationService.ParseShiftTimes(date, shift);
                 TransportConnection? morningTransport = null;
                 TransportConnection? afternoonTransport = null;
 
-                // Get transport for morning shift if it has morning time
                 if (!string.IsNullOrEmpty(shift.MorningTime) && shiftTimes.MorningStart.HasValue)
-                {
                     morningTransport = await _transportService.GetConnectionAsync(shiftTimes.MorningStart.Value);
-                }
 
-                // Get transport for afternoon shift if it has afternoon time
                 if (!string.IsNullOrEmpty(shift.AfternoonTime))
                 {
-                    var shouldLoadAfternoonTransport = true;
-                    
-                    // If both morning and afternoon shifts exist, check break duration
+                    var shouldLoad = true;
+
                     if (!string.IsNullOrEmpty(shift.MorningTime) && shiftTimes.MorningEnd.HasValue && shiftTimes.AfternoonStart.HasValue)
                     {
-                        var breakDurationMinutes = (shiftTimes.AfternoonStart.Value - shiftTimes.MorningEnd.Value).TotalMinutes;
-                        shouldLoadAfternoonTransport = breakDurationMinutes >= transportConfig.MinBreakMinutes;
+                        var breakMinutes = (shiftTimes.AfternoonStart.Value - shiftTimes.MorningEnd.Value).TotalMinutes;
+                        shouldLoad = breakMinutes >= transportConfig.MinBreakMinutes;
                     }
-                    
-                    if (shouldLoadAfternoonTransport && shiftTimes.AfternoonStart.HasValue)
-                    {
+
+                    if (shouldLoad && shiftTimes.AfternoonStart.HasValue)
                         afternoonTransport = await _transportService.GetConnectionAsync(shiftTimes.AfternoonStart.Value);
-                    }
                 }
 
                 shiftsWithTransport.Add(new ShiftWithTransport
@@ -258,8 +251,9 @@ namespace ShiftScheduler.Server.Controllers
         public int Month { get; set; }
     }
 
-    public class SyncToGoogleCalendarRequest
+    public class SyncToCalendarRequest
     {
+        public string Provider { get; set; } = string.Empty;
         public string CalendarId { get; set; } = string.Empty;
         public int Year { get; set; }
         public int Month { get; set; }

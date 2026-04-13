@@ -10,7 +10,7 @@ namespace ShiftScheduler.Client.Pages
         [Inject] private HttpClient HttpClient { get; set; } = default!;
         [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
         [Inject] private NavigationManager NavigationManager { get; set; } = default!;
-        
+
         private List<Shift> Shifts { get; set; } = new();
         private Dictionary<DateTime, string> SelectedSchedule { get; set; } = new();
         private Dictionary<DateTime, ShiftWithTransport> SelectedShiftsWithTransport { get; set; } = new();
@@ -21,24 +21,22 @@ namespace ShiftScheduler.Client.Pages
         private bool _showConfigDialog = false;
         private bool _isSyncing = false;
         private bool _showCalendarSelector = false;
+        private string _syncProvider = string.Empty;
         private string _errorMessage = string.Empty;
         private string _successMessage = string.Empty;
-        private List<GoogleCalendar> _availableCalendars = new();
+        private List<CalendarInfo> _availableCalendars = new();
 
         private MonthAndYear SelectedDate => _isCurrentMonth ? MonthAndYear.Current() : MonthAndYear.Next();
 
         protected override async Task OnInitializedAsync()
         {
             _isLoadingInitial = true;
-            
-            // Load shifts first to show the calendar immediately
+
             Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
-            
-            // Show calendar immediately, don't wait for transport data
+
             _isLoadingInitial = false;
             StateHasChanged();
-            
-            // Load schedule and transport data in the background
+
             _ = Task.Run(async () =>
             {
                 await LoadScheduleFromStorage();
@@ -63,29 +61,25 @@ namespace ShiftScheduler.Client.Pages
         private async Task SelectShift(DateTime day, string shiftName)
         {
             SelectedSchedule[day] = shiftName;
-            
-            // Get transport information for this shift and date - per day loading
+
             _isLoadingTransportPerDay[day] = true;
             StateHasChanged();
-            
+
             try
             {
                 var request = new { ShiftName = shiftName, Date = day };
                 var response = await HttpClient.PostAsJsonAsync("api/shift/shift_transport", request);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var shiftWithTransport = await response.Content.ReadFromJsonAsync<ShiftWithTransport>();
                     if (shiftWithTransport != null)
-                    {
                         SelectedShiftsWithTransport[day] = shiftWithTransport;
-                    }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error fetching transport data: {ex.Message}");
-                // Create a fallback with just the shift data
                 var shift = Shifts.FirstOrDefault(s => s.Name == shiftName);
                 if (shift != null)
                 {
@@ -103,7 +97,7 @@ namespace ShiftScheduler.Client.Pages
                 _isLoadingTransportPerDay[day] = false;
                 StateHasChanged();
             }
-            
+
             await SaveScheduleToStorage();
         }
 
@@ -117,7 +111,7 @@ namespace ShiftScheduler.Client.Pages
 
                 var request = new { Year = SelectedDate.Year, Month = SelectedDate.Month };
                 var response = await HttpClient.PostAsJsonAsync("api/shift/export_ics", request);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var bytes = await response.Content.ReadAsByteArrayAsync();
@@ -136,7 +130,7 @@ namespace ShiftScheduler.Client.Pages
             {
                 _errorMessage = $"Error exporting ICS file: {ex.Message}";
             }
-            
+
             StateHasChanged();
         }
 
@@ -150,7 +144,7 @@ namespace ShiftScheduler.Client.Pages
 
                 var request = new { Year = SelectedDate.Year, Month = SelectedDate.Month };
                 var response = await HttpClient.PostAsJsonAsync("api/shift/export_pdf", request);
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     var bytes = await response.Content.ReadAsByteArrayAsync();
@@ -168,38 +162,39 @@ namespace ShiftScheduler.Client.Pages
             {
                 _errorMessage = $"Error exporting PDF file: {ex.Message}";
             }
-            
+
             StateHasChanged();
         }
 
-        private async Task SyncToGoogleCalendar()
+        private Task SyncToGoogleCalendar() => StartCalendarSync("google");
+        private Task SyncToNextcloud() => StartCalendarSync("nextcloud");
+
+        private async Task StartCalendarSync(string provider)
         {
             try
             {
                 _errorMessage = string.Empty;
                 _successMessage = string.Empty;
+                _syncProvider = provider;
                 _isSyncing = true;
                 StateHasChanged();
 
-                // Get available calendars
-                var response = await HttpClient.GetAsync("api/shift/google_calendars");
+                var response = await HttpClient.GetAsync($"api/shift/calendars?provider={provider}");
                 if (response.IsSuccessStatusCode)
                 {
-                    _availableCalendars = await response.Content.ReadFromJsonAsync<List<GoogleCalendar>>() ?? new();
-                    
+                    _availableCalendars = await response.Content.ReadFromJsonAsync<List<CalendarInfo>>() ?? new();
+
                     if (_availableCalendars.Count == 1)
                     {
-                        // If only one calendar, sync directly
                         await PerformCalendarSync(_availableCalendars[0].Id);
                     }
                     else if (_availableCalendars.Count > 1)
                     {
-                        // Show calendar selector
                         _showCalendarSelector = true;
                     }
                     else
                     {
-                        _errorMessage = "No writable calendars found in your Google account.";
+                        _errorMessage = "No writable calendars found.";
                     }
                 }
                 else
@@ -210,7 +205,7 @@ namespace ShiftScheduler.Client.Pages
             }
             catch (Exception ex)
             {
-                _errorMessage = $"Error accessing Google Calendar: {ex.Message}";
+                _errorMessage = $"Error accessing calendar: {ex.Message}";
             }
             finally
             {
@@ -234,27 +229,27 @@ namespace ShiftScheduler.Client.Pages
 
                 var request = new
                 {
+                    Provider = _syncProvider,
                     CalendarId = calendarId,
                     Year = SelectedDate.Year,
                     Month = SelectedDate.Month
                 };
 
-                var response = await HttpClient.PostAsJsonAsync("api/shift/sync_to_google_calendar", request);
-                
+                var response = await HttpClient.PostAsJsonAsync("api/shift/sync_to_calendar", request);
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var result = await response.Content.ReadFromJsonAsync<dynamic>();
-                    _successMessage = "Shifts synced to Google Calendar successfully!";
+                    _successMessage = "Shifts synced successfully!";
                 }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _errorMessage = $"Failed to sync to Google Calendar: {response.StatusCode}. {errorContent}";
+                    _errorMessage = $"Failed to sync: {response.StatusCode}. {errorContent}";
                 }
             }
             catch (Exception ex)
             {
-                _errorMessage = $"Error syncing to Google Calendar: {ex.Message}";
+                _errorMessage = $"Error syncing: {ex.Message}";
             }
             finally
             {
@@ -280,7 +275,7 @@ namespace ShiftScheduler.Client.Pages
                     Month = SelectedDate.Month,
                     Schedule = SelectedSchedule
                 };
-                
+
                 await HttpClient.PostAsJsonAsync("api/shift/save_schedule", request);
             }
             catch (Exception)
@@ -294,12 +289,10 @@ namespace ShiftScheduler.Client.Pages
             try
             {
                 var response = await HttpClient.GetAsync($"api/shift/load_schedule/{SelectedDate.Year}/{SelectedDate.Month}");
-                
+
                 if (response.IsSuccessStatusCode)
                 {
                     SelectedSchedule = await response.Content.ReadFromJsonAsync<Dictionary<DateTime, string>>() ?? new();
-                    
-                    // Reload transport data for all selected shifts
                     await ReloadTransportDataForSchedule();
                 }
                 else
@@ -318,41 +311,33 @@ namespace ShiftScheduler.Client.Pages
         private async Task ReloadTransportDataForSchedule()
         {
             SelectedShiftsWithTransport.Clear();
-            
-            // Clear existing per-day loading states
             _isLoadingTransportPerDay.Clear();
-            
-            // Mark all days as loading
+
             foreach (var kvp in SelectedSchedule)
-            {
                 _isLoadingTransportPerDay[kvp.Key] = true;
-            }
+
             StateHasChanged();
 
-            // Create parallel tasks for all transport data requests
             var transportTasks = SelectedSchedule.Select(async kvp =>
             {
                 var day = kvp.Key;
                 var shiftName = kvp.Value;
-                
+
                 try
                 {
                     var request = new { ShiftName = shiftName, Date = day };
                     var response = await HttpClient.PostAsJsonAsync("api/shift/shift_transport", request);
-                    
+
                     if (response.IsSuccessStatusCode)
                     {
                         var shiftWithTransport = await response.Content.ReadFromJsonAsync<ShiftWithTransport>();
                         if (shiftWithTransport != null)
-                        {
                             SelectedShiftsWithTransport[day] = shiftWithTransport;
-                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error reloading transport data for {day}: {ex.Message}");
-                    // Create fallback without transport
                     var shift = Shifts.FirstOrDefault(s => s.Name == shiftName);
                     if (shift != null)
                     {
@@ -367,13 +352,11 @@ namespace ShiftScheduler.Client.Pages
                 }
                 finally
                 {
-                    // Mark this day as no longer loading
                     _isLoadingTransportPerDay[day] = false;
                     await InvokeAsync(StateHasChanged);
                 }
             }).ToArray();
 
-            // Wait for all transport data to load
             await Task.WhenAll(transportTasks);
         }
 
@@ -381,7 +364,7 @@ namespace ShiftScheduler.Client.Pages
         {
             SelectedSchedule.Clear();
             SelectedShiftsWithTransport.Clear();
-            
+
             try
             {
                 await HttpClient.DeleteAsync($"api/shift/delete_schedule/{SelectedDate.Year}/{SelectedDate.Month}");
@@ -392,45 +375,42 @@ namespace ShiftScheduler.Client.Pages
             }
         }
 
-        // Helper method to get transport summary for display
         private string GetTransportSummary(DateTime date)
         {
             if (!SelectedShiftsWithTransport.TryGetValue(date, out var shiftWithTransport))
                 return string.Empty;
 
             var summaries = new List<string>();
-            
+
             var morningTransport = shiftWithTransport.GetMorningTransportSummary();
             if (!string.IsNullOrEmpty(morningTransport))
                 summaries.Add(morningTransport);
-                
+
             var afternoonTransport = shiftWithTransport.GetAfternoonTransportSummary();
             if (!string.IsNullOrEmpty(afternoonTransport))
                 summaries.Add(afternoonTransport);
-            
-            if (summaries.Count == 0) { return string.Empty; }
-                
+
+            if (summaries.Count == 0) return string.Empty;
+
             return "🚂 " + string.Join(" | ", summaries);
         }
 
-        // Helper method to get shift times for display
         private string GetShiftTimes(DateTime date)
         {
             if (!SelectedSchedule.TryGetValue(date, out var shiftName))
                 return string.Empty;
-                
+
             var shift = Shifts.FirstOrDefault(s => s.Name == shiftName);
-            if (shift == null)
-                return string.Empty;
-                
+            if (shift == null) return string.Empty;
+
             var times = new List<string>();
-            
+
             if (!string.IsNullOrEmpty(shift.MorningTime))
                 times.Add($"🌅 {shift.MorningTime}");
-                
+
             if (!string.IsNullOrEmpty(shift.AfternoonTime))
                 times.Add($"🌆 {shift.AfternoonTime}");
-                
+
             return string.Join(" | ", times);
         }
 
@@ -448,9 +428,11 @@ namespace ShiftScheduler.Client.Pages
 
         private async Task OnConfigurationChanged()
         {
-            // Reload shifts after configuration changes
             Shifts = await HttpClient.GetFromJsonAsync<List<Shift>>("api/shift/shifts") ?? new();
             StateHasChanged();
         }
+
+        private bool IsLoadingTransportForDay(DateTime day) =>
+            _isLoadingTransportPerDay.GetValueOrDefault(day, false);
     }
 }

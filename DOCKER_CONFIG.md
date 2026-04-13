@@ -62,3 +62,17 @@ No migration needed - existing installations will automatically:
 ## File Format
 
 Configuration files use standard JSON format and can be edited directly if needed. Changes take effect after application restart.
+
+## Nextcloud Calendar Sync
+
+To enable Nextcloud CalDAV sync, populate the `Nextcloud` section in the production `appsettings.json` (not committed to git):
+
+```json
+"Nextcloud": {
+  "BaseUrl": "https://your-nextcloud-instance.example.com",
+  "Username": "your-nextcloud-username",
+  "AppPassword": "your-nextcloud-app-password"
+}
+```
+
+Generate an app password in Nextcloud: **Settings → Security → Devices & sessions → Create new app password**.
