@@ -124,6 +124,14 @@ app.UseHttpsRedirection();
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
+var iconsPath = Path.Combine(Directory.GetCurrentDirectory(), "config", "icons");
+Directory.CreateDirectory(iconsPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(iconsPath),
+    RequestPath = "/icons"
+});
+
 app.UseRouting();
 
 app.UseAuthentication();
