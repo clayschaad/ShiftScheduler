@@ -129,6 +129,25 @@ All shift types are configurable through the in-app settings dialog.
    - Navigate to `http://localhost:5000`
    - Sign in with your Google account
 
+## Scripts
+
+### `scripts/extract_icons.py` — Extract icons from a PEP shift plan PDF
+
+Reads the Dienst-Legende on the last page of a POLYPOINT/PEP PDF, matches each icon to its shift code, and saves the icons as PNG files into `config/icons/`.
+
+**Requirements**
+```bash
+pip install pymupdf
+```
+
+**Usage**
+```bash
+python scripts/extract_icons.py "Mai Plan Definitiv.pdf"
+python scripts/extract_icons.py path/to/plan.pdf --out config/icons
+```
+
+The output directory defaults to `Server/config/icons`, which is the path served as `/icons` by the application.
+
 ## Documentation
 
 - [Authentication Setup Guide](authentication-setup.md) — Google OAuth configuration
