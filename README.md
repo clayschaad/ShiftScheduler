@@ -1,75 +1,59 @@
 # ShiftScheduler
 
-A modern Blazor WebAssembly application for managing work shift schedules with calendar export capabilities and transport integration.
+A Blazor WebAssembly application for managing work shift schedules with calendar export and transport integration.
 
 ## Overview
 
 ShiftScheduler is a web-based shift management system that allows users to:
-- Plan and visualize work shifts using an intuitive calendar interface
-- Export schedules to industry-standard formats (ICS and PDF)
-- Calculate optimal transport connections for work commutes
-- Manage multiple shift types with customizable icons and time periods
+- Plan and visualize work shifts using a monthly calendar interface
+- Export schedules to ICS and PDF formats
+- Sync shifts directly to Google Calendar or Nextcloud Calendar
+- View optimal transport connections for work commutes
 - Secure access through Google OAuth authentication
-
-Perfect for individuals or small teams who need to organize shift work, track schedules, and integrate with existing calendar systems.
 
 ## Key Features
 
-### 📅 **Calendar-Based Shift Management**
-- Interactive monthly calendar view with easy shift selection
-- Switch between current and next month
-- Visual shift indicators with customizable icons and colors
-- Responsive design for desktop and mobile devices
+### Calendar-Based Shift Management
+- Monthly calendar view with day-by-day shift assignment
+- Toggle between current and next month
+- Mobile-friendly week layout alongside the desktop grid view
 
-### 🔄 **Export Capabilities**
-- **ICS Export**: Import schedules directly into Google Calendar, Outlook, or any calendar application
-- **PDF Export**: Generate printable shift schedules with professional formatting  
-- **Google Calendar Sync**: Direct synchronization with Google Calendar (NEW!)
-  - Automatic calendar selection for multiple calendars
-  - Smart event management (updates existing app-created events)
-  - Respects existing calendar events from other sources
-- One-click export functionality
+### Export & Sync
+- **ICS Export**: Download a calendar file compatible with any calendar application
+- **PDF Export**: Generate a printable monthly schedule
+- **Google Calendar Sync**: Direct sync to a selected Google Calendar; existing app-managed events are updated, other events are untouched
+- **Nextcloud Calendar Sync**: CalDAV-based sync to a selected Nextcloud calendar
 
-### 🚆 **Transport Integration**
-- Automatic calculation of travel times between configurable stations
-- Integration with Swiss public transport API (transport.opendata.ch)
-- Safety buffer calculations for reliable commute planning
-- Display of optimal departure and arrival times
+### Transport Integration
+- Calculates optimal departure and arrival times for work commutes
+- Integrates with the Swiss public transport API (`transport.opendata.ch`)
+- Displays morning and afternoon connections alongside each shift
+- Configurable safety buffers and break durations
 
-### 🔐 **Secure Authentication**
-- Google OAuth integration for secure access
-- Configurable authorized email addresses
-- Session management with proper login/logout functionality
+### Authentication
+- Google OAuth 2.0 with a configurable list of authorized email addresses
 
-### ⚙️ **Flexible Configuration**
-- **Shift Types**: Fully customizable shift definitions with:
-  - Custom names and icons (emoji or PNG images)
-  - Morning and afternoon time periods
-  - Flexible time format support
-- **Transport Settings**: Configurable start/end stations, API parameters, and timing buffers
-- **Persistent Configuration**: Settings survive application restarts and container rebuilds
+### Configuration
+- Shift definitions (name, emoji icon, morning/afternoon time ranges) managed via the in-app configuration dialog
+- Transport settings (stations, API URL, timing buffers) configurable in-app
+- Configuration can be exported and imported as JSON for backup
 
-### 🐳 **Docker Ready**
-- Container-friendly with persistent external configuration
-- Easy deployment with Docker Compose
-- Configuration backup and version control support
+## Default Shift Types
 
-## Available Shift Types (Default Configuration)
+| Icon | Name | Morning Time | Afternoon Time |
+|------|------|--------------|----------------|
+| ⚫ | Frei | — | — |
+| 🌴 | Urlaub | — | — |
+| 🌅 | Früh | 06:00–14:00 | — |
+| 🌆 | Spät | — | 14:00–22:00 |
+| ☀️ | Tag | 08:00–12:00 | 13:00–17:00 |
+| (icon) | Pause | 10:00–10:15 | 15:00–15:15 |
 
-| Icon | Name | Morning Time | Afternoon Time | Description |
-|------|------|--------------|----------------|-------------|
-| ⚫ | Frei | - | - | Free day / Day off |
-| 🌴 | Urlaub | - | - | Vacation day |
-| 🛑 | Pause | 10:00-10:15 | 15:00-15:15 | Break periods |
-| 🌅 | Früh | 06:00-14:00 | - | Early shift |
-| 🌆 | Spät | - | 14:00-22:00 | Late shift |
-| ☀️ | Tag | 08:00-12:00 | 13:00-17:00 | Day shift |
+All shift types are configurable through the in-app settings dialog.
 
-*All shift types are fully configurable through the application interface.*
+## Configuration
 
-## Configuration Options
-
-### Authentication Settings
+### Authentication (`Server/appsettings.json`)
 ```json
 {
   "Authentication": {
@@ -78,14 +62,24 @@ Perfect for individuals or small teams who need to organize shift work, track sc
       "ClientSecret": "your-google-client-secret"
     },
     "AuthorizedEmails": [
-      "user1@gmail.com",
-      "user2@example.com"
+      "user@gmail.com"
     ]
   }
 }
 ```
 
-### Transport Configuration
+### Nextcloud CalDAV
+```json
+{
+  "Nextcloud": {
+    "BaseUrl": "https://your-nextcloud-instance.example.com",
+    "Username": "your-username",
+    "AppPassword": "your-app-password"
+  }
+}
+```
+
+### Transport
 ```json
 {
   "Transport": {
@@ -101,26 +95,11 @@ Perfect for individuals or small teams who need to organize shift work, track sc
 }
 ```
 
-### Shift Definitions
-```json
-{
-  "Shifts": [
-    {
-      "Name": "Custom Shift",
-      "Icon": "🎯",
-      "MorningTime": "09:00-13:00",
-      "AfternoonTime": "14:00-18:00"
-    }
-  ]
-}
-```
-
 ## Installation & Setup
 
 ### Prerequisites
 - .NET 9.0 SDK
-- Modern web browser
-- Google Cloud Console account (for authentication)
+- Google Cloud Console account (for OAuth)
 
 ### Quick Start
 
@@ -135,10 +114,9 @@ Perfect for individuals or small teams who need to organize shift work, track sc
    dotnet restore
    ```
 
-3. **Configure authentication** (see [Authentication Setup Guide](authentication-setup.md))
-   - Create Google OAuth application
-   - Update `Server/appsettings.json` with your credentials
-   - Add authorized email addresses
+3. **Configure authentication**
+   - See [Authentication Setup Guide](authentication-setup.md)
+   - Update `Server/appsettings.json` with your Google OAuth credentials and authorized emails
 
 4. **Build and run**
    ```bash
@@ -147,84 +125,15 @@ Perfect for individuals or small teams who need to organize shift work, track sc
    dotnet run
    ```
 
-5. **Access the application**
+5. **Open the app**
    - Navigate to `http://localhost:5000`
    - Sign in with your Google account
-   - Start planning your shifts!
-
-### Docker Deployment
-
-```yaml
-version: '3.8'
-services:
-  shiftscheduler:
-    build: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./config:/app/config  # Persistent configuration
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-```
-
-See [Docker Configuration Guide](DOCKER_CONFIG.md) for detailed deployment instructions.
-
-## Usage
-
-### Planning Shifts
-1. Navigate between months using the month selection buttons
-2. Click on any day to cycle through available shift types
-3. Shifts are automatically saved and persist across sessions
-4. Hover over shifts to see detailed time information
-
-### Exporting Schedules
-- **ICS Export**: Click "Export to ICS" to download a calendar file compatible with all major calendar applications
-- **Google Calendar Sync**: Click "Sync to Google Calendar" to directly sync shifts to your Google Calendar
-  - If you have multiple calendars, choose which one to sync to
-  - Existing shift events will be updated automatically
-  - Other calendar events remain untouched
-- **PDF Export**: Click "Export to PDF" to generate a printable schedule document
-
-### Managing Configuration
-1. Click the "⚙️ Configuration" button to access settings
-2. **Shift Management**: Add, edit, or remove shift types
-3. **Transport Settings**: Configure stations and timing preferences
-4. **Import/Export**: Backup and restore configuration settings
-
-### Transport Integration
-When transport is configured, the application automatically:
-- Calculates optimal departure times for work commutes
-- Displays train connections and travel duration
-- Applies safety buffers for reliable planning
-- Shows both morning and afternoon journey options
-
-## Technical Architecture
-
-- **Frontend**: Blazor WebAssembly (.NET 9.0)
-- **Backend**: ASP.NET Core Web API (.NET 9.0)
-- **Authentication**: Google OAuth 2.0
-- **Export**: QuestPDF for PDF generation, custom ICS implementation
-- **Transport**: Swiss Public Transport API integration
-- **Configuration**: JSON-based with external persistence support
 
 ## Documentation
 
-- [📚 Authentication Setup Guide](authentication-setup.md) - Complete Google OAuth configuration
-- [🐳 Docker Configuration Guide](DOCKER_CONFIG.md) - Containerization and deployment
-- [📄 License](LICENSE) - Apache 2.0 License
-
-## Contributing
-
-This project follows standard .NET development practices:
-- Uses .NET 9.0 target framework
-- Implements nullable reference types
-- Follows established architectural patterns
-- Includes comprehensive configuration options
-
-## Support
-
-For issues, questions, or feature requests, please use the GitHub issue tracker.
+- [Authentication Setup Guide](authentication-setup.md) — Google OAuth configuration
+- [Docker Configuration Guide](DOCKER_CONFIG.md) — Containerized deployment
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
