@@ -104,7 +104,7 @@ namespace ShiftScheduler.Services
                     var shift = shiftWithTransport.Shift;
                     if (shift.IsPngIcon) 
                     {
-                        var iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "icons", shift.Icon);
+                        var iconPath = Path.Combine(Directory.GetCurrentDirectory(), "config", "icons", shift.Icon);
                         if (File.Exists(iconPath))
                         {
                             table.Cell().Height(24).Element(CellStyleMiddle).Image(iconPath).FitArea();
